@@ -14,6 +14,7 @@ class StudyRequest(BaseModel):
 
     reference: str = Field(min_length=1, max_length=200)
     translation: str = Field(default="", max_length=40)
+    language: str = Field(default="", max_length=10)
 
 
 class PassageRef(BaseModel):

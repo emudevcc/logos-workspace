@@ -373,3 +373,49 @@ async def test_provider_prefix_fallback_resolves_niv11() -> None:
         default_translation="NTV",
     )
     assert await provider.resolve_bible_id("NIV") == "bible-niv11"
+
+
+async def test_study_service_uses_selected_output_language(database: Database) -> None:
+    client = make_mock_http(make_bible_handler("For God so loved the world"))
+    provider = BibleTextProvider(
+        client,
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    llm = FakeLLM(SAMPLE_REPORT)
+    service = BibleStudyService(database, llm, provider)
+
+    await service.create_study("João 3:16", translation="NIV", language="en")
+    system = llm.calls[0]["system"]
+    user = llm.calls[0]["user"]
+    assert "MANDATORY GUARDRAILS" in system
+    assert "Work in English" in system
+    assert "Passage studied:" in user
+
+    llm2 = FakeLLM(SAMPLE_REPORT)
+    service2 = BibleStudyService(database, llm2, provider)
+    await service2.create_study("Rm 8:31-39", translation="NTV", language="es")
+    assert "GUARDARRAILS OBLIGATORIOS" in llm2.calls[0]["system"]
+
+
+def test_study_route_accepts_language_param(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(
+            handler=make_bible_handler("texto"), llm=FakeLLM(SAMPLE_REPORT)
+        ) as client:
+            created = client.post(
+                "/api/bible/study",
+                json={"reference": "João 3:16", "translation": "NIV", "language": "en"},
+            )
+            assert created.status_code == 201
+            assert created.json()["report"]["core_principle"] == SAMPLE_REPORT["core_principle"]
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)

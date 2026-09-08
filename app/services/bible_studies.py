@@ -1,8 +1,10 @@
 """Bíblia study service: pericope exegesis generation and persistence.
 
 Generates the six-section study report (user spec §2) through the LLM with
-deterministic book-profile grounding and guardrail instructions (spec §3), then
-persists the record so studies can be re-opened from history.
+deterministic book-profile grounding and guardrail instructions (spec §3).
+The output language follows the caller's choice (es/en/pt; Spanish default),
+matching the passage-translation language selected in the UI. Reports are
+persisted so studies can be re-opened from history.
 """
 
 from __future__ import annotations
@@ -23,21 +25,9 @@ from app.services.llm import LLMError, LLMProvider
 
 logger = logging.getLogger(__name__)
 
-_STUDY_SYSTEM = (
-    "Eres un exégeta bíblico evangélico y conservador que produce estudios de "
-    "pasajes según el método histórico-gramatical. Trabajas en español.\n\n"
-    "GUARDARRAILS OBLIGATORIOS:\n"
-    "1. Prioridad literal-gramatical: el sentido primario reside en la "
-    "intención del autor en su contexto histórico-gramatical; rechaza la "
-    "alegorización especulativa.\n"
-    "2. Ortodoxia evangélica histórica: sola Scriptura, justificación por la "
-    "fe, alta visión de la inspiración e inerrancia bíblica.\n"
-    "3. Nada de teologizar sin cita: toda afirmación sobre griego/hebreo y "
-    "trasfondo histórico debe apoyarse en el consenso léxico e histórico "
-    "documentado; explica la base en 'consensus_note' de cada término.\n\n"
-    "Usa SOLO los datos del perfil del libro provistos (autor, fecha, ocasión); "
-    "si algo no consta, escríbelo como incierto. Responde SOLAMENTE con JSON "
-    "con esta forma exacta:\n"
+VALID_LANGUAGES: tuple[str, str, str] = ("es", "en", "pt")
+
+_JSON_SHAPE = (
     '{"text_literary": {"genre": "...", "authorial_tone": "...", '
     '"unit_division": "..."}, "historical_grammatical": {"author": "...", '
     '"recipients": "...", "date": "...", "geopolitical_context": "...", '
@@ -51,16 +41,92 @@ _STUDY_SYSTEM = (
     '"guardrail_notes": "..."}'
 )
 
-_STUDY_USER = (
-    "Perfil del libro (datos deterministas):\n{profile}\n\n"
-    "Pasaje estudiado: {reference} ({translation})\n\n"
-    "Texto del pasaje:\n{passage_text}\n\n"
-    "Sección 2 debe usar los datos del perfil y marcar como incierto lo que no "
-    "conste. En la sección 3 analiza 2-3 palabras originales clave del pasaje "
-    "(griego en el NT, hebreo/arameo en el AT). Sección 4 ubica el pasaje en la "
-    "historia redentora, da referencias cruzadas breves y su sentido cristológico "
-    "legítimo. Sección 6 ofrece aplicaciones concretas y prácticas."
-)
+# System prompts localized per output language (guardrails of the agreed spec).
+_SYSTEM_BY_LANG = {
+    "es": (
+        "Eres un exégeta bíblico evangélico y conservador que produce estudios de "
+        "pasajes según el método histórico-gramatical. Trabajas en español.\n\n"
+        "GUARDARRAILS OBLIGATORIOS:\n"
+        "1. Prioridad literal-gramatical: el sentido primario reside en la "
+        "intención del autor en su contexto histórico-gramatical; rechaza la "
+        "alegorización especulativa.\n"
+        "2. Ortodoxia evangélica histórica: sola Scriptura, justificación por la "
+        "fe, alta visión de la inspiración e inerrancia bíblica.\n"
+        "3. Nada de teologizar sin cita: toda afirmación sobre griego/hebreo y "
+        "trasfondo histórico debe apoyarse en el consenso léxico e histórico "
+        "documentado; explica la base en 'consensus_note' de cada término.\n\n"
+        "Usa SOLO los datos del perfil del libro provistos (autor, fecha, ocasión); "
+        "si algo no consta, escríbelo como incierto. Responde SOLAMENTE con JSON "
+        "con esta forma exacta:\n" + _JSON_SHAPE
+    ),
+    "en": (
+        "You are a conservative evangelical biblical exegete producing passage "
+        "studies using the historical-grammatical method. Work in English.\n\n"
+        "MANDATORY GUARDRAILS:\n"
+        "1. Literal-grammatical priority: the primary meaning lies in the author's "
+        "intent within its original historical-grammatical context; reject "
+        "speculative allegorization.\n"
+        "2. Historic evangelical orthodoxy: sola Scriptura, justification by "
+        "faith, a high view of Scripture's inspiration and inerrancy.\n"
+        "3. No uncited theologizing: every claim about Greek/Hebrew and "
+        "historical background must rest on documented lexical and historical "
+        "consensus; explain the basis in each term's 'consensus_note'.\n\n"
+        "Use ONLY the book-profile facts provided (author, date, occasion); if "
+        "something is not stated, mark it as uncertain. Respond ONLY with JSON in "
+        "exactly this shape:\n" + _JSON_SHAPE
+    ),
+    "pt": (
+        "Você é um exegeta bíblico evangélico e conservador que produz estudos de "
+        "passagens segundo o método histórico-gramatical. Trabalhe em português.\n\n"
+        "GUARDAS OBRIGATÓRIAS:\n"
+        "1. Prioridade literal-gramatical: o sentido primário reside na intenção "
+        "do autor no seu contexto histórico-gramatical; rejeite a alegorização "
+        "especulativa.\n"
+        "2. Ortodoxia evangélica histórica: sola Scriptura, justificação pela fé, "
+        "alta visão da inspiração e inerrância bíblica.\n"
+        "3. Nada de teologizar sem citação: toda afirmação sobre grego/hebraico e "
+        "contexto histórico deve apoiar-se em consenso lexical e histórico "
+        "documentado; explique a base no 'consensus_note' de cada termo.\n\n"
+        "Use SOMENTE os dados do perfil do livro fornecidos (autor, data, ocasião); "
+        "se algo não constar, escreva como incerto. Responda SOMENTE com JSON com "
+        "esta forma exata:\n" + _JSON_SHAPE
+    ),
+}
+
+_USER_BY_LANG = {
+    "es": (
+        "Perfil del libro (datos deterministas):\n{profile}\n\n"
+        "Pasaje estudiado: {reference} ({translation})\n\n"
+        "Texto del pasaje:\n{passage_text}\n\n"
+        "La sección 2 debe usar los datos del perfil y marcar como incierto lo que "
+        "no conste. En la sección 3 analiza 2-3 palabras originales clave del pasaje "
+        "(griego en el NT, hebreo/arameo en el AT). La sección 4 ubica el pasaje en "
+        "la historia redentora, da referencias cruzadas breves y su sentido "
+        "cristológico legítimo. La sección 6 ofrece aplicaciones concretas y "
+        "prácticas."
+    ),
+    "en": (
+        "Book profile (deterministic data):\n{profile}\n\n"
+        "Passage studied: {reference} ({translation})\n\n"
+        "Passage text:\n{passage_text}\n\n"
+        "Section 2 must use the profile data and mark as uncertain anything not "
+        "stated there. In section 3 analyze 2-3 pivotal original-language words of "
+        "the passage (Greek in the NT, Hebrew/Aramaic in the OT). Section 4 places "
+        "the passage in redemptive history, gives brief cross-references, and its "
+        "legitimate christological sense. Section 6 offers concrete, practical "
+        "applications."
+    ),
+    "pt": (
+        "Perfil do livro (dados determinísticos):\n{profile}\n\n"
+        "Passagem estudada: {reference} ({translation})\n\n"
+        "Texto da passagem:\n{passage_text}\n\n"
+        "A seção 2 deve usar os dados do perfil e marcar como incerto o que não "
+        "constar. Na seção 3 analise 2-3 palavras originais-chave da passagem "
+        "(grego no NT, hebraico/aramaico no AT). A seção 4 situa a passagem na "
+        "história da redenção, dá referências cruzadas breves e o seu sentido "
+        "cristológico legítimo. A seção 6 oferece aplicações concretas e práticas."
+    ),
+}
 
 
 class BibleStudyService:
@@ -76,12 +142,14 @@ class BibleStudyService:
         self._provider = provider
         self._max_report_tokens = max_report_tokens
 
-    async def create_study(self, reference: str, translation: str = "") -> StudyRecord:
+    async def create_study(
+        self, reference: str, translation: str = "", language: str = ""
+    ) -> StudyRecord:
         """Parse a reference, fetch the passage, generate and persist a study."""
         ref = parse_reference(reference, translation=translation)
         label = ref.translation
         passage_text = await self._provider.fetch_text(ref, label)
-        report = await self._build_report(ref, passage_text, label)
+        report = await self._build_report(ref, passage_text, label, language)
 
         now = iso_utc(utc_now())
         async with self._db.transaction() as conn:
@@ -117,20 +185,22 @@ class BibleStudyService:
         )
 
     async def _build_report(
-        self, ref: Any, passage_text: str, translation: str
+        self, ref: Any, passage_text: str, translation: str, language: str = ""
     ) -> BibleStudy:
+        language = language if language in VALID_LANGUAGES else "es"
         profile = book_by_code(ref.book_code)
         if profile is None:
             raise LLMError(f"Perfil do livro ausente para {ref.book_code}")
         profile_text = _profile_for_prompt(profile)
-        user = _STUDY_USER.format(
+        system = _SYSTEM_BY_LANG[language]
+        user = _USER_BY_LANG[language].format(
             profile=profile_text,
             reference=ref.display,
             translation=translation,
             passage_text=passage_text,
         )
         raw = await self._llm.complete_json(
-            system=_STUDY_SYSTEM, user=user, max_tokens=self._max_report_tokens, temperature=0.2
+            system=system, user=user, max_tokens=self._max_report_tokens, temperature=0.2
         )
         try:
             report = BibleStudy.model_validate(raw)

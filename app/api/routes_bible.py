@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.api.deps import rate_limited
@@ -66,9 +68,12 @@ async def passage(
 async def create_study(payload: StudyRequest, request: Request) -> StudyRecord:
     settings = request.app.state.settings
     translation = (payload.translation or "").strip() or settings.bible_default_translation
+    language = _resolve_language(payload.language, translation, settings)
     service: BibleStudyService = request.app.state.bible_studies
     try:
-        return await service.create_study(payload.reference, translation=translation)
+        return await service.create_study(
+            payload.reference, translation=translation, language=language
+        )
     except BibleReferenceError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except BibleNotConfiguredError as exc:
@@ -127,4 +132,15 @@ async def prefs(request: Request) -> BiblePrefs:
         en=settings.bible_english_translation,
         pt=settings.bible_portuguese_translation,
     )
+
+
+def _resolve_language(requested: str, translation: str, settings: Any) -> str:
+    """Output language for a study: explicit request, else label mapping."""
+    if requested in {"es", "en", "pt"}:
+        return requested
+    if translation == getattr(settings, "bible_english_translation", "NIV"):
+        return "en"
+    if translation == getattr(settings, "bible_portuguese_translation", "NVT"):
+        return "pt"
+    return "es"
 
