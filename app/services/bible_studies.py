@@ -93,6 +93,27 @@ _SYSTEM_BY_LANG = {
     ),
 }
 
+_JSON_RETRY_HINT = {
+    "es": (
+        "\n\nIMPORTANTE: Devuelve ÚNICAMENTE un objeto JSON válido con exactamente "
+        "la forma indicada; sin bloques de código ni texto adicional."
+    ),
+    "en": (
+        "\n\nIMPORTANT: Return ONLY a single valid JSON object in exactly the shape "
+        "above; no markdown fences and no extra text."
+    ),
+    "pt": (
+        "\n\nIMPORTANTE: Responda APENAS com um objeto JSON válido na forma exata "
+        "indicada; sem blocos de código nem texto extra."
+    ),
+}
+
+
+def _is_json_failure(exc: LLMError) -> bool:
+    message = str(exc)
+    return "json_validate_failed" in message or "Failed to generate JSON" in message
+
+
 _USER_BY_LANG = {
     "es": (
         "Perfil del libro (datos deterministas):\n{profile}\n\n"
@@ -199,9 +220,27 @@ class BibleStudyService:
             translation=translation,
             passage_text=passage_text,
         )
-        raw = await self._llm.complete_json(
-            system=system, user=user, max_tokens=self._max_report_tokens, temperature=0.2
-        )
+        raw: dict[str, Any] | None = None
+        last_error: LLMError | None = None
+        for attempt in range(2):
+            system_for_call = system if attempt == 0 else system + _JSON_RETRY_HINT[language]
+            try:
+                raw = await self._llm.complete_json(
+                    system=system_for_call,
+                    user=user,
+                    max_tokens=self._max_report_tokens,
+                    temperature=0.2 if attempt == 0 else 0.1,
+                )
+                break
+            except LLMError as exc:
+                last_error = exc
+                if attempt == 0 and _is_json_failure(exc):
+                    continue
+                raise
+        if raw is None:
+            if last_error is None:  # pragma: no cover - defensive
+                raise LLMError("Estudo bíblico: falha sem erro registrado")
+            raise last_error
         try:
             report = BibleStudy.model_validate(raw)
         except ValidationError as exc:

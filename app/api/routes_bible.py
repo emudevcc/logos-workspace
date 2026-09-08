@@ -25,6 +25,7 @@ from app.services.bible_provider import (
     BibleUpstreamError,
 )
 from app.services.bible_studies import BibleStudyService
+from app.services.llm import LLMError, LLMNotConfiguredError
 
 router = APIRouter(prefix="/api/bible", tags=["bible"])
 
@@ -82,6 +83,15 @@ async def create_study(payload: StudyRequest, request: Request) -> StudyRecord:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except BibleUpstreamError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except LLMError as exc:
+        if isinstance(exc, LLMNotConfiguredError):
+            raise
+        if "json_validate_failed" in str(exc) or "Failed to generate JSON" in str(exc):
+            raise HTTPException(
+                status_code=502,
+                detail="El modelo no devolvió un JSON válido; vuelve a intentarlo.",
+            ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)[:200]) from exc
 
 
 @router.get("/studies", response_model=list[StudySummary])

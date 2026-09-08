@@ -18,6 +18,7 @@ from app.services.bible_provider import (
     passage_id_for,
 )
 from app.services.bible_studies import BibleStudyService
+from app.services.llm import LLMError
 from tests.backend.helpers import ClientFactory, FakeLLM, make_mock_http
 
 SAMPLE_REPORT = {
@@ -419,3 +420,34 @@ def test_study_route_accepts_language_param(
     finally:
         get_settings.cache_clear()
         os.environ.pop("BIBLE_API_KEY", None)
+
+
+async def test_study_retries_once_on_json_validation_failure(database: Database) -> None:
+    calls: list[dict] = []
+
+    class FlakyLLM:
+        enabled = True
+
+        async def complete_json(
+            self, *, system: str, user: str, max_tokens: int, temperature: float
+        ):
+            calls.append({"system": system, "temperature": temperature})
+            if len(calls) == 1:
+                raise LLMError(
+                    "LLM request failed (400): {\"error\": {\"code\": \"json_validate_failed\", "
+                    "\"failed_generation\": \"{\\\"text_liter\\\"\"}}"
+                )
+            return SAMPLE_REPORT
+
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler("english text")),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    service = BibleStudyService(database, FlakyLLM(), provider)  # type: ignore[arg-type]
+    record = await service.create_study("João 3:16", translation="NIV", language="en")
+    assert record.report.reference == "João 3:16"
+    assert len(calls) == 2
+    assert "Return ONLY" in calls[1]["system"]
+    assert calls[1]["temperature"] == 0.1
