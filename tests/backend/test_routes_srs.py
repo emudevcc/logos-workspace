@@ -62,15 +62,17 @@ def test_export_endpoint(client_factory: ClientFactory) -> None:
         response = client.get("/api/srs/export")
         assert response.status_code == 200
         data = response.json()
-        assert len(data["decks"]) == 1
-        assert len(data["cards"]) == 12
+        # seeded decks: English workplace + two Português starter decks
+        assert len(data["decks"]) == 3
+        assert len(data["cards"]) == 48
 
 def test_decks_and_stats_are_cockpit_scoped(client_factory: ClientFactory) -> None:
     with client_factory() as client:
-        assert client.get("/api/srs/decks?cockpit=pt").json() == []
+        pt_decks = client.get("/api/srs/decks?cockpit=pt").json()
+        assert [deck["slug"] for deck in pt_decks] == ["pt-vocabulario", "pt-falsos-cognatos"]
         stats_pt = client.get("/api/srs/stats?cockpit=pt").json()
-        assert stats_pt["cards_total"] == 0
-        # default cockpit is "en", matching the seeded deck
+        assert stats_pt["cards_total"] == 36
+        # default cockpit is "en", matching the seeded English deck
         stats_en = client.get("/api/srs/stats").json()
         assert stats_en["cards_total"] == 12
 

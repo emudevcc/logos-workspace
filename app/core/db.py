@@ -63,6 +63,10 @@ MIGRATIONS: tuple[str, ...] = (
     """
     ALTER TABLE decks ADD COLUMN cockpit TEXT NOT NULL DEFAULT 'en';
     """,
+    # v3: Spanish-scaffolding hint (L1 note) on cards, used by the PT cockpit.
+    """
+    ALTER TABLE cards ADD COLUMN l1_hint TEXT NOT NULL DEFAULT '';
+    """,
 )
 
 

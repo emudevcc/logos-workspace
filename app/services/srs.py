@@ -164,14 +164,15 @@ class SrsService:
                 raise SrsError(f"Deck {deck_id} not found")
             cursor = await conn.execute(
                 "INSERT INTO cards "
-                "(deck_id, front, back, ipa, register_tag, examples, due_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "(deck_id, front, back, ipa, register_tag, l1_hint, examples, due_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     deck_id,
                     request.front,
                     request.back,
                     request.ipa,
                     request.register_tag,
+                    request.l1_hint,
                     json.dumps(request.examples),
                     due_at,
                 ),
@@ -293,6 +294,7 @@ def _card_out(row: aiosqlite.Row) -> CardOut:
         back=row["back"],
         ipa=row["ipa"],
         register_tag=row["register_tag"],
+        l1_hint=row["l1_hint"],
         examples=json.loads(row["examples"]),
         ease_factor=row["ease_factor"],
         interval_days=row["interval_days"],

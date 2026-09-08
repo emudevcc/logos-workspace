@@ -23,6 +23,7 @@ from app.api.routes_content import router as content_router
 from app.api.routes_learning import router as learning_router
 from app.api.routes_plan import router as plan_router
 from app.api.routes_prep import router as prep_router
+from app.api.routes_pt import router as pt_router
 from app.api.routes_radio_ws import router as radio_ws_router
 from app.api.routes_srs import router as srs_router
 from app.api.websocket import router as ws_router
@@ -53,6 +54,9 @@ from app.services.news import NewsService
 from app.services.plan import WeeklyPlanService
 from app.services.podcast import PodcastService
 from app.services.prep import PrepService
+from app.services.pt_generators import PtGrammarCoach, PtPracticeSentence
+from app.services.pt_news import PtNewsService
+from app.services.pt_seed import seed_pt_decks
 from app.services.quiz import QuizService
 from app.services.radio import RadioService
 from app.services.register import RegisterService
@@ -78,6 +82,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await database.connect()
     await database.initialize()
     await seed_default_deck(database)
+    await seed_pt_decks(database)
     app.state.db = database
     app.state.srs = SrsService(database)
 
@@ -162,6 +167,11 @@ def create_app(
     app.state.writing = WritingCoachService(llm)
     app.state.monologue = MonologueService(llm)
     app.state.plan = WeeklyPlanService(llm)
+    app.state.pt_coach = PtGrammarCoach(llm)
+    app.state.pt_sentence = PtPracticeSentence(llm)
+    app.state.pt_news = PtNewsService(
+        http_client, ttl_seconds=settings.content_cache_ttl_seconds
+    )
     app.state.radio = RadioService(deepgram)
     app.state.dictionary = DictionaryService(llm, ttl_seconds=settings.dictionary_cache_ttl_seconds)
     app.state.rate_limiter = RateLimiter(settings.rate_limit_per_minute, 60.0)
@@ -182,6 +192,7 @@ def create_app(
     app.include_router(srs_router)
     app.include_router(prep_router)
     app.include_router(assist_router)
+    app.include_router(pt_router)
 
     _register_exception_handlers(app)
 

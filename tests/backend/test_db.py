@@ -62,3 +62,8 @@ async def test_new_deck_defaults_to_english_cockpit(database: Database) -> None:
     assert row is not None
     assert row["cockpit"] == "en"
 
+
+async def test_cards_table_has_l1_hint_column(database: Database) -> None:
+    cursor = await database.connection.execute("PRAGMA table_info(cards)")
+    columns = {row["name"] for row in await cursor.fetchall()}
+    assert "l1_hint" in columns

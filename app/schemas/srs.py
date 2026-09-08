@@ -22,6 +22,7 @@ class CardOut(BaseModel):
     back: str
     ipa: str = ""
     register_tag: str = ""
+    l1_hint: str = ""
     examples: list[str] = Field(default_factory=list)
     ease_factor: float
     interval_days: int
@@ -54,6 +55,7 @@ class CardCreateRequest(BaseModel):
     back: str = Field(min_length=1, max_length=2000)
     ipa: str = Field(default="", max_length=200)
     register_tag: str = Field(default="", max_length=100)
+    l1_hint: str = Field(default="", max_length=500)
     examples: list[str] = Field(default_factory=list)
 
 
