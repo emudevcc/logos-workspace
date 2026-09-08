@@ -59,26 +59,24 @@ SAMPLE_REPORT = {
 
 
 def make_bible_handler(passage_content: str = "texto del pasaje"):
+    catalog = {
+        "spa": [
+            {"id": "bible-ntv", "abbreviation": "NTV", "name": "Nueva Traducción Viviente"},
+            {"id": "bible-rvr09", "abbreviation": "RVR09", "name": "Reina Valera 1909"},
+        ],
+        "eng": [
+            {"id": "bible-niv", "abbreviation": "NIV", "name": "New International Version"},
+        ],
+        "por": [
+            {"id": "bible-nvt", "abbreviation": "NVT", "name": "Nova Versão Transformadora"},
+        ],
+    }
+
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         if path.endswith("/bibles"):
-            return httpx.Response(
-                200,
-                json={
-                    "data": [
-                        {
-                            "id": "bible-rvr09",
-                            "abbreviation": "RVR09",
-                            "name": "Reina Valera 1909",
-                        },
-                        {
-                            "id": "bible-rvr60",
-                            "abbreviation": "RVR60",
-                            "name": "Reina-Valera 1960",
-                        },
-                    ]
-                },
-            )
+            language = (request.url.params.get("language") or "spa").lower()
+            return httpx.Response(200, json={"data": catalog.get(language, [])})
         if "/passages/" in path:
             return httpx.Response(
                 200,
@@ -253,7 +251,7 @@ def test_study_endpoint_flow_with_key(
 
             detail = client.get(f"/api/bible/studies/{body['id']}")
             assert detail.status_code == 200
-            assert detail.json()["translation"] == "RVR09"
+            assert detail.json()["translation"] == "NTV"
 
             assert client.delete(f"/api/bible/studies/{body['id']}").status_code == 204
             assert client.get(f"/api/bible/studies/{body['id']}").status_code == 404
@@ -276,3 +274,66 @@ def test_study_endpoint_rejects_bad_reference(
     finally:
         get_settings.cache_clear()
         os.environ.pop("BIBLE_API_KEY", None)
+
+
+async def test_provider_resolves_versions_across_languages() -> None:
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler("texto")),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    assert await provider.resolve_bible_id("NIV") == "bible-niv"
+    assert await provider.resolve_bible_id("NVT") == "bible-nvt"
+    assert await provider.resolve_bible_id("Nueva Traducción Viviente") == "bible-ntv"
+    available = await provider.available_translations()
+    abbreviations = {row["abbreviation"] for row in available}
+    languages = {row["language"] for row in available}
+    assert {"NTV", "NIV", "NVT"} <= abbreviations
+    assert {"spa", "eng", "por"} <= languages
+
+
+def test_translations_and_prefs_endpoints(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(handler=make_bible_handler("texto")) as client:
+            prefs = client.get("/api/bible/prefs")
+            assert prefs.status_code == 200
+            assert prefs.json() == {"es": "NTV", "en": "NIV", "pt": "NVT"}
+
+            rows = client.get("/api/bible/translations").json()
+            abbreviations = {row["abbreviation"] for row in rows}
+            assert {"NTV", "NIV", "NVT"} <= abbreviations
+            languages = {row["language"] for row in rows}
+            assert {"spa", "eng", "por"} <= languages
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)
+
+
+def test_passage_with_explicit_translation(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(handler=make_bible_handler("english text")) as client:
+            response = client.get(
+                "/api/bible/passage",
+                params={"reference": "João 3:16", "translation": "NIV"},
+            )
+            assert response.status_code == 200
+            body = response.json()
+            assert body["ref"]["translation"] == "NIV"
+            assert body["passage_text"] == "english text"
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)
+

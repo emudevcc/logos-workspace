@@ -6,11 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.api.deps import rate_limited
 from app.schemas.bible import (
+    BiblePrefs,
     BookProfile,
     PassageText,
     StudyRecord,
     StudyRequest,
     StudySummary,
+    TranslationInfo,
 )
 from app.services.bible_books import all_profiles
 from app.services.bible_parser import BibleReferenceError, parse_reference
@@ -98,3 +100,28 @@ async def delete_study(study_id: int, request: Request) -> None:
     deleted = await service.delete_study(study_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Estudo não encontrado")
+
+
+@router.get("/translations", response_model=list[TranslationInfo])
+async def translations(request: Request) -> list[TranslationInfo]:
+    """Discovered translations across the spa/eng/por catalogs (for the UI)."""
+    provider: BibleTextProvider = request.app.state.bible_provider
+    if not provider.enabled:
+        raise HTTPException(status_code=503, detail="Bible API key is not configured")
+    try:
+        rows = await provider.available_translations()
+    except BibleUpstreamError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return [TranslationInfo(**row) for row in rows]
+
+
+@router.get("/prefs", response_model=BiblePrefs)
+async def prefs(request: Request) -> BiblePrefs:
+    """Configured translation labels for the es/en/pt UI selector."""
+    settings = request.app.state.settings
+    return BiblePrefs(
+        es=settings.bible_default_translation,
+        en=settings.bible_english_translation,
+        pt=settings.bible_portuguese_translation,
+    )
+

@@ -111,3 +111,18 @@ class BookProfile(BaseModel):
     author: str
     date: str
     occasion: str
+
+
+class TranslationInfo(BaseModel):
+    id: str
+    abbreviation: str
+    name: str
+    language: str
+
+
+class BiblePrefs(BaseModel):
+    """Configured translation labels per UI language (es/en/pt)."""
+
+    es: str
+    en: str
+    pt: str

@@ -82,7 +82,13 @@ class Settings(BaseSettings):
         default=7 * 86400.0, gt=0, validation_alias="BIBLE_API_CACHE_TTL_SECONDS"
     )
     bible_default_translation: str = Field(
-        default="RVR09", validation_alias="BIBLE_DEFAULT_TRANSLATION"
+        default="NTV", validation_alias="BIBLE_DEFAULT_TRANSLATION"
+    )
+    bible_english_translation: str = Field(
+        default="NIV", validation_alias="BIBLE_ENGLISH_TRANSLATION"
+    )
+    bible_portuguese_translation: str = Field(
+        default="NVT", validation_alias="BIBLE_PORTUGUESE_TRANSLATION"
     )
 
     stt_provider: Literal["deepgram", "whisper"] = Field(
