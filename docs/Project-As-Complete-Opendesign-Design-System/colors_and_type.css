@@ -1,0 +1,130 @@
+/* ═══════════════════════════════════════════════════════════════════
+   English Cockpit OS — colors_and_type.css
+   Reusable color + typography foundations. Copy verbatim into the first
+   <style> of a new surface, then bind spacing/radius via tokens.css.
+   Source evidence: english-cockpit-os.html :root block + C2 accent map in
+   english-cockpit-implementation.md.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root{
+  color-scheme:dark;
+
+  /* ── neutrals · macOS-native dark (prototype tokens, verbatim) ── */
+  --bg:#1a1a1d;      /* page background            */
+  --srf:#242429;     /* surface: rail, cards, dialog */
+  --up:#2d2d33;      /* elevated: textarea, cardface, metrics, hover fills */
+  --ln:#3c3c44;      /* hairline border             */
+  --fg:#f5f5f7;      /* primary text (near-white)   */
+  --mut:#a8a8b2;     /* secondary text  (≥4.5:1 on --srf) */
+  --faint:#9696a0;   /* tertiary text / captions     */
+
+  /* ── system accent (blue) + derived variants ── */
+  --acc:#0a84ff;     /* brand / primary accent       */
+  --acc-t:#2f9bff;   /* accent-as-text on dark (≥4.5:1) */
+  --acc-d:#0a6dd4;   /* deep accent fill — white text ≥4.5:1 */
+  --acc-dh:#085eb6;  /* deep accent fill, hover      */
+
+  /* ── semantic states ── */
+  --ok:#30d158;      /* success / online / correct   */
+  --live:#ff3b30;    /* recording / listening / live */
+  --live-h:#e02e24;  /* live fill, hover             */
+  --focus-ok:rgba(48,209,88,.22);   /* picked-choice surface */
+  --focus-ok-t:#c8ffe0;             /* picked-choice text     */
+  --chip-ok-bg:rgba(48,209,88,.16); --chip-ok-t:#7ee2a5;
+  --chip-rev-bg:rgba(255,214,10,.14); --chip-rev-t:#ffd60a;
+  --status-ok-bd:rgba(48,209,88,.4);
+  --me-bubble:rgba(10,132,255,.15); --me-bubble-t:#e7f0ff;
+  --nav-on:rgba(10,132,255,.17);    --nav-on-ic:#9ccfff;
+  --hover-soft:rgba(255,255,255,.05);  /* nav hover bg */
+  --hover-mid:rgba(255,255,255,.08);   /* soft btn bg  */
+  --hover-strong:rgba(255,255,255,.14);/* soft btn hover */
+  --hover-line:#999;                   /* line btn hover border */
+  --card-line-h:#61616b;               /* card border hover */
+  --sel-fg:#fff;
+
+  /* ── window traffic lights (decorative, macOS) ── */
+  --tl-close:#ff5f57; --tl-min:#febc2e; --tl-full:#28c840;
+
+  /* ── module accent system · finalized C2 map (14 unique hues) ──
+     Usage contract (from implementation guide C2):
+       --mod-*        decorative only — accent bar, ≥12px glyph, selected fill
+       --mod-*-text   bright variant for live text/links/values  (≥4.5:1 on dark)
+       --mod-*-deep   deep fill for solid buttons (white text ≥4.5:1)
+     Yellow-family hues (#ff9f0a / #ffd60a) must never be used for <14px body
+     text or light-filled buttons. Derive -text/-deep with oklch() by shifting L
+     (±), keeping hue & C; never via hand-picked hex.
+  ── */
+  --mod-today:#0a84ff;      /* Today      — view: Today      */
+  --mod-word-of-day:#ff9f0a;/* Word & Idiom of the Day       */
+  --mod-news:#5ac8fa;       /* News                          */
+  --mod-podcast:#bf5af2;    /* Podcast                       */
+  --mod-weekly-plan:#5e5ce6;/* Weekly Plan                   */
+  --mod-srs:#30d158;        /* Flashcards — view: Practice   */
+  --mod-prep:#ffd60a;       /* PREP drill (decor/large only) */
+  --mod-grammar:#ff375f;    /* Verbs & Grammar               */
+  --mod-shadowing:#64d2ff;  /* Pronunciation                 */
+  --mod-voice:#00c7be;      /* Roleplay — view: Speak        */
+  --mod-speech:#32d74b;     /* Speech Metrics                */
+  --mod-radio:#ff453a;      /* Live Radio                    */
+  --mod-declutter:#ff6482;  /* Writing Coach — view: Write   */
+  --mod-register:#af52de;   /* Register Swap                 */
+
+  /* ── typography ── */
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  --font-serif:Georgia,"Iowan Old Style","Times New Roman",serif; /* Kindle-style reading */
+  --font-mono:ui-monospace,"SF Mono",Menlo,monospace;             /* numerics · timer · IPA */
+
+  /* type scale (kiosk: 1080p @1–3m, still fine up close) */
+  --fs-hero:30px;   /* view title  h1 · w730 · -0.02em */
+  --fs-display:22px;/* modal h2 (serif) · w640 */
+  --fs-title:21px;  /* card h2 · w660 · -0.01em */
+  --fs-lg:17px;     /* nav item / conversation body · w560 */
+  --fs-body:16px;   /* base body */
+  --fs-btn:15px;    /* buttons · w620 */
+  --fs-sub:14.5px;  /* view subtitle / definition subline */
+  --fs-sm:13px;     /* captions, list meta */
+  --fs-xs:12px;     /* micro labels */
+  --fs-kicker:11px; /* mono kicker · .11em · uppercase */
+  --fs-face:30px;   /* serif cardface (flashcard/prompt surface) */
+  --fs-count:34px;  /* PREP countdown numerals */
+  --fs-metric:28px; /* speech-metrics numerals (mono) */
+  --fs-kpi:24px;    /* card KPI numerals */
+  --fw-display:730; --fw-title:660; --fw-btn:620; --fw-nav:560;
+  --ls-display:-.02em; --ls-title:-.01em; --ls-kicker:.11em;
+  --lh-body:1.5; --lh-head:1.2; --lh-serif-read:1.55;
+}
+
+/* ═══════════ element baseline (dark surfaces) ═══════════ */
+body{background:var(--bg);color:var(--fg);font-family:var(--font-ui);
+  font-size:var(--fs-body);line-height:var(--lh-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;border:0;cursor:pointer;background:none}
+svg{display:block}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.card:focus-visible{outline:2px solid var(--mc,var(--acc));outline-offset:2px}
+::selection{background:rgba(10,132,255,.35)}
+::-webkit-scrollbar{width:11px}
+::-webkit-scrollbar-thumb{background:var(--ln);border-radius:99px;border:3px solid var(--bg);background-clip:content-box}
+
+/* ═══════════ helpers ═══════════ */
+.serif{font-family:var(--font-serif)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.mut{color:var(--mut)}.fnt{color:var(--faint)}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ═══════════ module accent bindings (mirrors repo [data-module]) ═══════════
+   Set --mc on the element that carries a module's identity (card, dialog),
+   exactly like the prototype: card.style.setProperty('--mc', COL[m]). */
+[data-module="today"]{--mc:var(--mod-today)}
+[data-module="word-of-day"]{--mc:var(--mod-word-of-day)}
+[data-module="news"]{--mc:var(--mod-news)}
+[data-module="podcast"]{--mc:var(--mod-podcast)}
+[data-module="weekly-plan"]{--mc:var(--mod-weekly-plan)}
+[data-module="srs"]{--mc:var(--mod-srs)}
+[data-module="prep"]{--mc:var(--mod-prep)}
+[data-module="grammar"]{--mc:var(--mod-grammar)}
+[data-module="shadowing"]{--mc:var(--mod-shadowing)}
+[data-module="voice"]{--mc:var(--mod-voice)}
+[data-module="speech"]{--mc:var(--mod-speech)}
+[data-module="radio"]{--mc:var(--mod-radio)}
+[data-module="declutter"]{--mc:var(--mod-declutter)}
+[data-module="register"]{--mc:var(--mod-register)}

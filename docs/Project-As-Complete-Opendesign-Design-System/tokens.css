@@ -1,0 +1,73 @@
+/* ═══════════════════════════════════════════════════════════════════
+   English Cockpit OS — tokens.css
+   Spacing · radius · elevation · motion · layout dimensions.
+   Paste after colors_and_type.css into the first <style> of a new surface.
+   Source evidence: english-cockpit-os.html component CSS.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ── spacing scale (evidence-derived gaps & paddings) ── */
+  --sp-2:2px; --sp-4:4px; --sp-5:5px; --sp-6:6px; --sp-8:8px; --sp-9:9px;
+  --sp-10:10px; --sp-11:11px; --sp-12:12px; --sp-13:13px; --sp-14:14px;
+  --sp-16:16px; --sp-18:18px; --sp-20:20px; --sp-22:22px; --sp-24:24px;
+
+  /* semantic gaps (used by component recipes) */
+  --gap-xs:var(--sp-6);    /* icon+label inline */
+  --gap-sm:var(--sp-9);    /* button groups, list rows, conv bubbles */
+  --gap-md:var(--sp-13);   /* badge+title row, kpi blocks */
+  --gap-lg:var(--sp-18);   /* grid gutter, dialog body stack */
+  --gap-xl:var(--sp-24);   /* kpi cluster */
+  --gap-section:var(--sp-20);
+
+  /* semantic paddings */
+  --pad-card:var(--sp-18);        /* card inner */
+  --pad-btn:var(--sp-9) var(--sp-16);
+  --pad-chip:var(--sp-4) var(--sp-12);
+  --pad-rail:var(--sp-20) var(--sp-14);
+  --pad-main:var(--sp-22) var(--sp-24) 52px;
+  --pad-pbody:var(--sp-22);
+  --pad-phead:var(--sp-18) var(--sp-22);
+  --pad-pfoot:var(--sp-14) var(--sp-22);
+  --pad-ta:var(--sp-13) var(--sp-15);
+  --pad-bubble:var(--sp-10) var(--sp-14);
+  --pad-metric:var(--sp-14);
+
+  /* ── radius ── */
+  --r-xs:var(--sp-8);    /* icon buttons (refresh / close hit box) */
+  --r-sm:11px;           /* buttons, nav items, tabs edge */
+  --r-md:var(--sp-13);   /* badge, status foot panel */
+  --r-card:var(--sp-14); /* cards, cardface, bubbles, metrics, textarea */
+  --r-lg:var(--sp-18);   /* dialog panel */
+  --r-pill:999px;        /* status pill, review chips */
+
+  /* ── elevation ── */
+  --shadow-dialog:0 30px 90px rgba(0,0,0,.6);
+  --backdrop:rgba(10,10,12,.6);
+  --backdrop-blur:2px;
+
+  /* ── motion (kiosk-frugal) ── */
+  --dur-fast:.12s; --dur-slow:.13s;
+  --ease:ease-out;
+  --card-press:translateY(1px);
+
+  /* ── layout dimensions ── */
+  --rail-w:276px;        /* sidebar (≥761px viewport) */
+  --rail-w-collapsed:84px;/* icon rail (≤760px) */
+  --dialog-w:880px;      /* min(880px, 94vw) */
+  --dialog-max-h:88vh;
+  --target:44px;         /* minimum touch/hover target */
+  --badge:44px;          /* card icon badge (fixed square) */
+  --tab-underline:2px;   /* active tab underline */
+  --card-accent:3px;     /* card top accent bar */
+  --view-title:30px;     /* 1:1 with --fs-hero */
+  --grid-gap:var(--sp-18);
+  --nav-gap:var(--sp-5);
+  --kpi-gap:var(--sp-24);
+  --conv-max:78%;        /* conversation bubble max-width */
+  --scrollbar-w:11px;
+}
+
+/* ── kiosk-friendly media baseline ── */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}

@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>English Cockpit OS · applied interface kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css" />
+<link rel="stylesheet" href="../../tokens.css" />
+<link rel="stylesheet" href="./cockpit.css" />
+<style>
+/* kit chrome only — not part of the applied UI */
+.gallery-hint{position:fixed;right:14px;bottom:14px;z-index:9;max-width:280px;background:var(--srf);
+  border:1px solid var(--ln);border-top:3px solid var(--acc);border-radius:var(--r-md);padding:12px 14px;
+  font-size:12.5px;color:var(--mut);line-height:1.5;box-shadow:var(--shadow-dialog)}
+.gallery-hint b{display:block;color:var(--fg);margin-bottom:2px;font-size:13px}
+@media(max-width:860px){.gallery-hint{display:none}}
+.comp-link{color:var(--acc-t);text-decoration:none;font-size:12px}
+.comp-link:hover{color:var(--fg);text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- sidebar rail — TODAY section (S01) -->
+  <aside class="rail" data-od-id="rail" id="rail"></aside>
+
+  <!-- main viewport -->
+  <main class="main" data-od-id="main">
+    <div class="top">
+      <div class="hcol"><h1 id="view-title">Today</h1><div class="view-sub" id="view-sub">A calm, glanceable start.</div></div>
+      <span class="status"><i></i>Online</span>
+      <span class="mono-pill">kit · demo</span>
+    </div>
+    <section class="view g3" data-view="today" data-od-id="view-today"></section>
+    <section class="view g3" data-view="practice" data-od-id="view-practice" hidden></section>
+    <section class="view g3" data-view="speak" data-od-id="view-speak" hidden></section>
+    <section class="view g2" data-view="write" data-od-id="view-write" hidden></section>
+  </main>
+</div>
+
+<!-- shared module modal — S07: mono kicker + serif title + fresh body + sticky footer -->
+<dialog id="modeDialog" aria-labelledby="modalTitle" class="kit-dialog">
+  <div class="panel" data-od-id="module-modal">
+    <div class="phead">
+      <div class="phead-text"><span class="kicker" id="modalKicker"></span><h2 class="serif" id="modalTitle"></h2></div>
+      <button class="xp" data-close aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="pbody" id="modalBody"></div>
+    <div class="pfoot"><button class="btn soft" data-close>Done</button></div>
+  </div>
+</dialog>
+
+<div class="gallery-hint" data-od-id="gallery-hint">
+  <b>Applied interface kit</b> 14 interactive module cards across 4 views →
+  one shared modal. Try the rail, an armed press (Record), tabs, grading/flip, and a rewrite.
+  Colors/type in ../../colors_and_type.css. <span style="display:block;margin-bottom:4px">Isolate a component:
+  </span>
+  <a class="comp-link" href="components/nav-item.html">nav-item</a> ·
+  <a class="comp-link" href="components/buttons.html">buttons</a> ·
+  <a class="comp-link" href="components/modal.html">modal</a> ·
+  <a class="comp-link" href="components/card.html">card</a> ·
+  <a class="comp-link" href="components/controls.html">controls</a>
+  <!-- referenced components are the 5 modular html files in components/ : nav-item.html, buttons.html, modal.html, card.html, controls.html -->
+  <button class="btn soft" style="display:block;min-height:32px;padding:4px 12px;font-size:12px;margin-top:8px" data-hint-close>Dismiss</button>
+</div>
+
+<script type="module">
+import { icon } from "../../build/icons.js";
+
+/* ── kit content: labels & module keys verbatim from the source prototype ── */
+const TITLE = {
+  today: "Your next step", "word-of-day": "Word & Idiom of the Day", news: "Tech & Business News Pulse",
+  podcast: "Daily Audio & Podcast Digest", "weekly-plan": "Weekly Plan", srs: "Spaced Repetition Flashcards",
+  prep: "Rapid-Fire PREP Drill", grammar: "Verbs & Grammar", shadowing: "Pronunciation Practice",
+  voice: "Voice Roleplay Partner", speech: "Speech-Metrics Coach", radio: "Live Radio & Teleprompter",
+  declutter: "Writing Coach", register: "Register Swap",
+};
+const MODE = {
+  today: "next step", news: "reading + quiz", podcast: "audio digest", "weekly-plan": "plan",
+  srs: "spaced repetition", prep: "timed drill", grammar: "grammar",
+  shadowing: "repeat + score", voice: "roleplay", speech: "live metrics",
+  radio: "captioned radio", declutter: "text coach", register: "5 registers",
+};
+const ORDER = {
+  today: ["today", "word-of-day", "news", "podcast", "weekly-plan"],
+  practice: ["srs", "prep", "grammar", "shadowing"],
+  speak: ["voice", "speech", "radio"],
+  write: ["declutter", "register"],
+};
+const VIEW_HEAD = {
+  today: ["Today", "A calm, glanceable start."],
+  practice: ["Practice", "Memory, timing, grammar and pronunciation."],
+  speak: ["Speak", "Live voice roleplay, coaching and radio."],
+  write: ["Write", "Polishing and register control."],
+};
+const NAV = [ ["today", "calendar", "Today"], ["practice", "target", "Practice"],
+  ["speak", "mic", "Speak"], ["write", "pencil", "Write"] ];
+/* Accent hues — the applied palette the prototype rendered. The DESIGN token map
+   (C2, canonical) is the spec; to bind it, swap this literal for CSS `--mc` from
+   colors_and_type.css [data-module]. */
+const ACCENT = {
+  today: "#0a84ff", "word-of-day": "#ffb03a", news: "#5ac8fa", podcast: "#c08bff",
+  "weekly-plan": "#6ec9ff", srs: "#37d67a", prep: "#1bc8cd", grammar: "#8b9bff",
+  shadowing: "#ff7aa2", voice: "#5ac8fa", speech: "#2ee6a0", radio: "#ff5f57",
+  declutter: "#ff6f92", register: "#9aa6ff",
+};
+const ar = () => icon("arrow-right");
+
+const SUMMARY = {
+  today: `<p>One focused block to begin — start with the next due review.</p>`,
+  "word-of-day": `<div class="serif" style="font-size:20px;line-height:1.5">serendipity
+     <div class="mut" style="font-size:14.5px">finding something good without looking for it</div></div>`,
+  news: `<p>'Government opens a fresh AI funding round aimed at small UK labs.'</p>
+     <p class="mut" style="font-size:13px;margin-top:8px">3 headlines · 2 key words marked</p>`,
+  podcast: `<p>BBC Business Briefing · 12 min · captioned.</p>`,
+  "weekly-plan": `<p>Speaking, grammar and writing each get a daily short block.</p>`,
+  srs: `<div class="kpi-row"><div><b>14</b><span>new</span></div><div><b>6</b><span>to review</span></div></div>`,
+  prep: `<p>Translate prompts against the clock.</p><div class="count-num">0:00</div>`,
+  grammar: `<p>Irregular + phrasal verbs, with a grammar coach for sentences of your own.</p>`,
+  shadowing: `<p>Hear the model, repeat it, and see how close you were.</p>`,
+  voice: `<p>Practise real conversations out loud, then reply against a partner voice.</p>`,
+  speech: `<div class="kpi-row"><div><b>—</b><span>WPM</span></div><div><b>0</b><span>fillers</span></div><div><b>—</b><span>cadence</span></div></div>`,
+  radio: `<p>Live radio with a synced teleprompter and transcript.</p>`,
+  declutter: `<p>Polish or correct one of your own drafts, with weak-to-strong verbs highlighted.</p>`,
+  register: `<p>Reword one idea across five registers — technical to informal.</p>`,
+};
+
+const face = (inner) => `<div class="cardface">${inner}</div>`;
+function bodyFor(m) {
+  switch (m) {
+    case "today": return `
+      <div class="kpi-row"><div><b class="mono">6</b><span>reviews due</span></div>
+        <div><b class="mono" style="color:var(--mc,var(--acc))">3</b><span>new since visit</span></div></div>
+      <p>Lead with the review you owe, then warm up lightly. Nothing is forced.</p>
+      <div class="btn-row"><button class="btn solid" data-open="srs">Study next card ${ar()}</button></div>`;
+    case "word-of-day": return `
+      ${face("serendipity")}
+      <p class="phon">/ˌser.ənˈdɪp.ə.ti/ · noun</p>
+      <p class="serif" style="font-size:20px;line-height:1.55;text-align:center">finding something good without looking for it</p>
+      <div class="btn-row center"><button class="btn soft">Prev</button><button class="btn soft">Next</button>
+        <button class="btn solid">Add to review</button></div>`;
+    case "news": return `
+      <p class="meta-line">3 headlines · 2 key words marked · quiz ready</p>
+      <ul class="strip-list">
+        <li><b>Government opens a fresh AI funding round aimed at small UK labs</b></li>
+        <li><b class="word-lead">£10m</b><span>toward applied research.</span></li>
+      </ul>
+      <div class="btn-row"><button class="btn solid">Quiz on these</button><button class="btn line">Glossary</button></div>`;
+    case "podcast": return `
+      <div class="btn-row"><span class="meta-line serif">BBC Business Briefing</span><span class="mono meta-line" style="margin-left:auto">1×</span></div>
+      <div class="btn-row"><button class="btn solid">Play episode</button><button class="btn line">Transcript</button></div>
+      <p class="meta-line">Twelve minutes, captioned as it plays. Pick a speed, pause, or clear.</p>`;
+    case "weekly-plan": return `
+      <ul class="strip-list">
+        <li><b class="word-lead">Mon</b><span>New vocab + a speaking drill</span></li>
+        <li><b class="word-lead">Tue</b><span>Grammar drill + word-of-day review</span></li>
+        <li><b class="word-lead">Wed</b><span>Pronunciation (shadowing)</span></li>
+        <li><b class="word-lead">Thu</b><span>Live radio captioning</span></li>
+        <li><b class="word-lead">Fri</b><span>Revision + writing polish</span></li>
+      </ul>
+      <div class="btn-row"><button class="btn solid" data-moment>Generate week</button></div>`;
+    case "srs": return `
+      <div class="btn-row"><span class="phase-pill ok">14 new</span><span class="phase-pill rev">6 review</span></div>
+      ${face('<b>novel</b><div class="phon" style="margin-top:10px;cursor:default">/ˈnɒv.əl/</div>')}
+      <div class="btn-row center"><button class="btn soft" data-flip-srs>Flip ${ar()}</button></div>
+      <div class="meta-line" id="gradeHint" style="display:none;text-align:center">Press 1–4 to grade, or tap.</div>
+      <div class="btn-row center" id="gradeBand" style="display:none">
+        <button class="btn soft" data-grade="1">Again</button><button class="btn soft" data-grade="2">Hard</button>
+        <button class="btn soft" data-grade="3">Good</button><button class="btn solid" data-grade="4">Easy</button></div>`;
+    case "prep": return `
+      ${face('“尽快回复” <span class="mut" style="font-size:.72em;font-family:var(--font-mono)">→ reply promptly</span>')}
+      <p class="serif" style="text-align:center">Translate that Chinese prompt into English.</p>
+      <div class="btn-row center"><button class="btn solid" data-show-answer>Reveal answer</button></div>`;
+    case "grammar": case "shadowing": case "declutter": return tabsShell(m);
+    case "voice": return `
+      <p>Roleplay a daily scenario out loud with a partner voice.</p>
+      <div class="conv">
+        <div class="co them serif">Partner: Let's start — how would you ask to move a meeting?</div>
+        <div class="co me serif">You <span class="hint fnt" style="font-family:var(--font-ui)">(hold to talk)</span></div>
+      </div>
+      <div class="btn-row"><button class="btn solid" data-press data-rest="Record">Record your reply ${ar()}</button>
+        <button class="btn line">New topic</button></div>`;
+    case "speech": return `
+      <div class="metic">
+        <div><b class="mono">—</b><span>WPM</span></div><div><b class="mono">0</b><span>fillers / min</span></div>
+        <div><b class="mono">—</b><span>cadence</span></div>
+      </div>
+      <p>Speak for a minute; we track pace, cadence and filler words, then replay your take.</p>
+      <div class="btn-row"><button class="btn solid" data-press data-rest="Start listening">Start listening ${ar()}</button></div>`;
+    case "radio": return `
+      <p class="meta-line">A live station, captioned in English as it airs. Read along on the teleprompter.</p>
+      <div class="btn-row">
+        <button class="btn solid" data-press data-rest="Listen live">Listen live</button>
+        <button class="btn soft" data-moment-clear data-rest="Clear">Clear</button></div>
+      <p class="meta-line" data-radio-fb>Live transcript: off — transcription follows only while a station plays.</p>`;
+    case "register": return registerModal();
+  }
+  return `<p>${TITLE[m]}</p>`;
+}
+
+function tabsShell(m) {
+  const tabs = m === "grammar" ? ["Irregular verbs", "Phrasal verbs", "Grammar coach"]
+    : m === "shadowing" ? ["Repeat", "Playback quiz"]
+    : ["Polish", "Correct"];
+  return `
+    <div class="tabs" role="tablist" aria-label="${TITLE[m]}">
+      ${tabs.map((t, i) => `<button class="tab${i === 0 ? " is-active" : ""}" role="tab" aria-selected="${i === 0}" data-tab="${i}">${t}</button>`).join("")}
+    </div>
+    ${tabs.map((_, i) => `<div class="tab-pane" data-pane="${i}"></div>`).join("")}
+    <p class="meta-line" data-mod-fb id="modFb" style="min-height:1.3em"></p>`;
+}
+
+/* one pane per module+step: kept small but authentic to the proto markup */
+function paneHTML(m, idx) {
+  const cd = document.createElement("template");
+  if (m === "grammar") {
+    const sent = idx === 0 ? ["She <span class=\"gap\">______</span> to the shop.", ["went", "goed"]]
+      : ["He couldn’t <span class=\"gap\">______</span> the meeting.", ["put off", "put in"]];
+    if (idx < 2) return face(`${sent[0]}`) + choices(sent[1]);
+    return `<p>Paste a phrase you wrote and ask why a wording reads oddly.</p>
+      <textarea class="ta serif" rows="3" placeholder="e.g. We should talk about the delay soon." data-in></textarea>
+      <button class="btn solid" data-coach>Ask the coach ${ar()}</button>`;
+  }
+  if (m === "shadowing") {
+    if (idx === 0) return face('The <b>results</b> were <b>released</b> this morning.') +
+      `<div class="btn-row"><button class="btn soft" data-mix data-rest="Play model">Play model</button>
+       <button class="btn solid" data-press data-rest="Record">Record ${ar()}</button></div>`;
+    return face('The <b>_____</b> were <b>released</b> this morning.') +
+      `<div class="btn-row"><button class="btn soft" data-mix data-rest="Play clip">Play clip</button></div>` +
+      choices(["advocate", "results", "reports"]);
+  }
+  // declutter
+  if (idx === 0) return `<p class="meta-line">Drop a draft in — choose a goal.</p>
+    <textarea class="ta serif" rows="3" data-in>We should talk about the meeting delay before it slips further.</textarea>
+    <div class="btn-row">
+      <button class="btn soft" data-decl-weak>Weak → strong verbs</button>
+      <button class="btn solid" data-decl-run data-goal="polish">Polish draft</button>
+      <button class="btn line" disabled data-copy>Copy revised</button></div>`;
+  return `<p class="meta-line">Correct one of your own drafts — errors first, then tone.</p>
+    <textarea class="ta serif" rows="3" data-in>We should talk about the delay before it causes a problem for the whole team.</textarea>
+    <div class="btn-row"><button class="btn solid" data-decl-run data-goal="correct">Correct text</button></div>`;
+}
+function choices(list) {
+  return `<div class="btn-row">${list.map((c) => `<button class="btn soft" data-choice>${c}</button>`).join("")}
+    <button class="btn solid" data-check>Check</button></div>`;
+}
+function registerModal() {
+  const regs = ["Technical", "Executive", "Polite", "Hedged", "Informal"];
+  return `<p>Reword the idea below for a different reader. Choose a register.</p>
+    ${face('<span class="serif" style="font-size:18px">We should sort the meeting timing before it slips further.</span>')}
+    <div class="tabs" role="tablist" aria-label="Register">
+      ${regs.map((r, i) => `<button class="tab${i === 0 ? " is-active" : ""}" data-reg="${i}" role="tab">${r}</button>`).join("")}
+    </div>
+    <textarea class="ta serif" rows="3" id="regOut" disabled placeholder="Choose a register, then Rewrite."></textarea>
+    <div class="btn-row"><button class="btn solid" data-rewrite>Rewrite ${ar()}</button></div>`;
+}
+const REGROWS = ["Coordinate the meeting reschedule", "Action: reschedule the sync by close",
+  "Would you be open to moving our session?", "Might be worth revisiting the slot soon",
+  "Should we nudge that meeting to another day?"];
+
+/* ── boot render (rail + greeting ring + cards) ── */
+const railEl = document.getElementById("rail");
+function renderRail() {
+  railEl.innerHTML = `
+    <div class="traffic" aria-hidden="true"><i class="c1"></i><i class="c2"></i><i class="c3"></i></div>
+    <div class="brand"><div class="n">English Cockpit OS</div><div class="s">daily english · kiosk</div></div>
+    <nav class="navs" aria-label="Sections">${NAV.map(([v, ico, name]) =>
+      `<button class="nav" data-nav="${v}" aria-label="${name}" role="tab" aria-selected="${v==="today"}">
+         ${icon(ico, "nav-ico")}<span class="nav-text">${name}</span></button>`).join("")}
+    </nav>
+    <div class="foot" data-od-id="status-panel">
+      <div class="f1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg><span>Good morning</span></div>
+      <div class="f2">
+        <svg class="goal-ring" viewBox="0 0 40 40" aria-hidden="true">
+          <circle class="track" cx="20" cy="20" r="17"/><circle class="bar" cx="20" cy="20" r="17" stroke-dasharray="107" stroke-dashoffset="75"/>
+        </svg>
+        <span class="goal-label"><i>Daily goal · reviews done</i><b>6 / 20</b></span>
+        <button class="ref-touch" type="button" aria-label="Next content refresh: 41:07" title="Next auto refresh in 41:07">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
+      </div>
+    </div>`;
+}
+function renderGrid() {
+  Object.entries(ORDER).forEach(([v, mods]) => {
+    const sec = document.querySelector(`.view[data-view="${v}"]`);
+    sec.innerHTML = mods.map(moduleCard).join("");
+  });
+}
+function moduleCard(m) {
+  return `<article class="card" data-open="${m}" role="button" tabindex="0" aria-haspopup="dialog"
+      aria-label="${TITLE[m]} — ${MODE[m]}. Open module.">
+      <span class="card-accent" style="display:none"></span>
+      <div class="book-row"><span class="badge svgbox">${icon(m, "")}</span>
+        <div><h2>${TITLE[m]}</h2><div class="card-kicker">${MODE[m]}</div></div></div>
+      <div class="card-sum">${SUMMARY[m]}</div>
+      <span class="open-cue" aria-hidden="true">Open ${ar()}</span></article>`;
+}
+function setViewAccents(v) {
+  document.querySelectorAll(`.view[data-view="${v}"] .card`).forEach((c) => {
+    c.style.setProperty("--mc", ACCENT[c.dataset.open] || "#0a84ff");
+  });
+}
+function showView(v) {
+  if (!VIEW_HEAD[v]) v = "today";
+  document.querySelectorAll(".nav[data-nav]").forEach((b) => {
+    const on = b.dataset.nav === v;
+    b.classList.toggle("is-active", on);
+    if (on) b.setAttribute("aria-selected", "true"); else b.removeAttribute("aria-selected");
+    if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+  document.querySelectorAll(".view").forEach((s) => (s.hidden = s.dataset.view !== v));
+  document.querySelectorAll(".view").forEach(setViewAccents);
+  document.getElementById("view-title").textContent = VIEW_HEAD[v][0];
+  document.getElementById("view-sub").textContent = VIEW_HEAD[v][1];
+  try { localStorage.setItem("cockpit-view", v); } catch (e) {}
+}
+
+/* ── modal open / fresh render (S07) ── */
+const dlg = document.getElementById("modeDialog");
+const bodyEl = document.getElementById("modalBody");
+let focusBack = null;
+function openModal(m, trigger) {
+  focusBack = trigger || document.activeElement;
+  document.getElementById("modalTitle").textContent = TITLE[m];
+  document.getElementById("modalKicker").textContent = (MODE[m] || "").toUpperCase();
+  dlg.style.setProperty("--mc", ACCENT[m] || "#0a84ff");
+  bodyEl.innerHTML = bodyFor(m);
+  fillPanes(m);
+  dlg.showModal();
+}
+function fillPanes(m) {
+  const panes = bodyEl.querySelectorAll(".tab-pane");
+  panes.forEach((p) => {
+    p.innerHTML = paneHTML(m, Number(p.dataset.pane));
+    p.hidden = Number(p.dataset.pane) !== 0;   // show only the active tab's pane
+  });
+}
+
+/* keydown / click delegation for every surface */
+document.addEventListener("keydown", (e) => {
+  const card = e.target.closest ? e.target.closest(".card[data-open]") : null;
+  if (card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); if (!dlg.open) openModal(card.dataset.open, card); return; }
+  if (dlg.open && document.getElementById("gradeBand") && ["1","2","3","4"].includes(e.key)) {
+    const hit = document.querySelector(`#gradeBand [data-grade="${e.key}"]`); if (hit) grade(hit); return;
+  }
+});
+document.addEventListener("click", (e) => {
+  const anyOpen = e.target.closest("[data-open]");
+  if (anyOpen && anyOpen.hasAttribute("data-open")) { if (anyOpen.dataset.open) { if (dlg.open) dlg.close(); openModal(anyOpen.dataset.open, anyOpen); return; } }
+  const nav = e.target.closest(".nav[data-nav]");
+  if (nav) { showView(nav.dataset.nav); return; }
+  const close = e.target.closest("[data-close]");
+  if (close) { if (dlg.open) dlg.close(); (focusBack && focusBack.focus && focusBack.focus()); return; }
+  const hint = e.target.closest("[data-hint-close]");
+  if (hint) { const h = document.querySelector(".gallery-hint"); if (h) h.remove(); return; }
+  if (!dlg.open) return;
+  // inline card "Study next card" opens SRS — handled above; the rest is modal:
+  moClick(e);
+});
+
+function moClick(e) {
+  const t = e.target.closest("[data-flip-srs]");
+  if (t) { flipSrs(); return; }
+  const press = e.target.closest("[data-press]");
+  if (press) { togglePress(press); return; }
+  const mix = e.target.closest("[data-mix]"); if (mix) { restLabel(mix); return; }
+  const choice = e.target.closest("[data-choice]"); if (choice) { pickOne(choice); return; }
+  const check = e.target.closest("[data-check]"); if (check) { checkAnswer(); return; }
+  const tab = e.target.closest("[data-tab]"); if (tab) { switchTab(bodyEl, tab); return; }
+  const reg = e.target.closest("[data-reg]"); if (reg) { switchTab(bodyEl, reg, "reg"); return; }
+  const rw = e.target.closest("[data-rewrite]"); if (rw) { rewrite(); return; }
+  const showAns = e.target.closest("[data-show-answer]"); if (showAns) { const f = bodyEl.querySelector(".cardface"); if (f) f.innerHTML = '尽快回复 <span class="mut" style="font-size:.7em;font-family:var(--font-mono)">→ reply promptly</span>'; showAns.remove(); return; }
+  const moment = e.target.closest("[data-moment]"); if (moment) { moment.textContent = "Week generated ✓"; moment.disabled = true; return; }
+  const clear = e.target.closest("[data-moment-clear]"); if (clear) { const fb = bodyEl.querySelector("[data-radio-fb]"); if (fb) fb.textContent = "Transcript cleared — transcription follows only while a station plays."; return; }
+  const coach = e.target.closest("[data-coach]"); if (coach) { const fb = document.getElementById("modFb"); const ta = bodyEl.querySelector("textarea[data-in]"); fb.textContent = (ta && ta.value.trim()) ? "Coach: you can tighten that to — “reschedule the slot before it slips”." : "Type a phrase first."; return; }
+  const declW = e.target.closest("[data-decl-weak]"); if (declW) { const fb = document.getElementById("modFb"); fb.textContent = "Weak-to-strong verbs highlighted: talk about → finalise; move → schedule."; return; }
+  const declR = e.target.closest("[data-decl-run]"); if (declR) {
+    const fb = document.getElementById("modFb"); const copy = bodyEl.querySelector("[data-copy]");
+    const goal = declR.dataset.goal; declR.innerHTML = (goal === "correct" ? "Corrected ✓" : "Polished ✓");
+    if (copy) copy.disabled = false; fb.textContent = goal === "correct"
+      ? "Corrected — one tense fixed, object moved before the deadline." : "Polish notes · talk about → finalise; redundant clause removed.";
+    setTimeout(() => { declR.innerHTML = goal === "correct" ? "Correct text" : "Polish draft " + ar(); }, 1400);
+    return; }
+  const grade = e.target.closest("[data-grade]"); if (grade) { grade(grade); return; }
+}
+function grade(btn) {
+  const band = document.getElementById("gradeBand"); if (band) band.style.display = "none";
+  const hint = document.getElementById("gradeHint"); if (hint) hint.style.display = "none";
+  const f = bodyEl.querySelector(".cardface");
+  if (f) f.innerHTML = "<b>advocate</b><div class=\"phon\" style=\"margin-top:10px\">/ˈæd.və.keɪt/</div>";
+  btn.blur();
+}
+function flipSrs() {
+  const f = bodyEl.querySelector(".cardface");
+  if (!f) return;
+  const back = f.dataset.back === "1";
+  const hint = document.getElementById("gradeHint"); const band = document.getElementById("gradeBand");
+  if (back) {
+    f.dataset.back = "0"; f.innerHTML = "<b>novel</b><div class=\"phon\" style=\"margin-top:10px\">/ˈnɒv.əl/</div>";
+    if (hint) hint.style.display = "none"; if (band) band.style.display = "none";
+  } else {
+    f.dataset.back = "1"; f.innerHTML = '<i>a new, original or unusual idea</i> — “a novel approach”';
+    if (hint) hint.style.display = "block"; if (band) band.style.display = "flex";
+  }
+}
+function togglePress(b) {
+  const rest = b.dataset.rest || "Record";
+  const onNow = b.classList.toggle("live");
+  b.setAttribute("aria-pressed", onNow.toString());
+  if (onNow) {
+    const rx = /Record|Start listening|Listen/;
+    b.innerHTML = "● " + (b.classList.contains("live") && rest.indexOf("Record") === 0 ? "Recording…" : rest.indexOf("listening") > -1 ? "Listening…" : rest.indexOf("live") > -1 ? "Live…" : "…");
+  } else { b.textContent = rest; }
+}
+function restLabel(b) { const rest = b.dataset.rest || "Play"; b.classList.add("live"); b.innerHTML = "● …"; b.setAttribute("aria-pressed", "true"); setTimeout(() => { b.classList.remove("live"); b.setAttribute("aria-pressed", "false"); b.innerHTML = rest; }, 700); }
+function pickOne(btn) {
+  const grp = btn.closest(".btn-row");
+  if (grp) { grp.querySelectorAll("[data-choice]").forEach((b) => { b.classList.remove("picked"); b.removeAttribute("aria-pressed"); }); }
+  btn.classList.add("picked"); btn.setAttribute("aria-pressed", "true");
+}
+function checkAnswer(btn) {
+  const fb = document.getElementById("modFb");
+  const pick = document.querySelector("#modalBody [data-choice].picked");
+  if (fb) { fb.textContent = pick ? "Checked — answered. Press next to move on." : "Pick an answer first."; }
+}
+function switchTab(root, btn, keyName) {
+  const tabs = btn.parentElement; // .tabs container
+  [...tabs.children].forEach((b) => { const on = b === btn; b.classList.toggle("is-active", on); if (b.hasAttribute("data-tab")) b.setAttribute("aria-selected", on); });
+  const id = btn.hasAttribute("data-tab") ? btn.dataset.tab : btn.dataset.reg;
+  const m = mOfRoot(root);
+  root.querySelectorAll(".tab-pane").forEach((p) => {
+    if (keyName === "reg") return; // register has no panes; output below
+    if (p.dataset.pane === id) { p.innerHTML = paneHTML(m, Number(id)); p.hidden = false; }
+    else p.hidden = true;
+  });
+  const fb = document.getElementById("modFb"); if (fb) fb.textContent = "";
+}
+function mOfRoot(root) {
+  const t = root.querySelector("h2"); // serif title
+  const title = t ? t.textContent : "";
+  const map = Object.entries(TITLE).find(([, v]) => v === title);
+  return map ? map[0] : "";
+}
+function rewrite() {
+  const active = document.querySelector("[data-reg].is-active");
+  const bit = active ? Number(active.dataset.reg) : 0;
+  const out = document.getElementById("regOut");
+  if (!out) return;
+  out.value = REGROWS[bit % REGROWS.length] || ""; out.disabled = false;
+  const rw = document.querySelector("[data-rewrite]"); if (rw) { rw.innerHTML = "Rewritten ✓"; setTimeout(() => { rw.innerHTML = "Rewrite " + ar(); }, 1400); }
+}
+
+/* ═══ boot ═══ */
+renderRail();
+renderGrid();
+showView(VIEW_HEAD.today ? (localStorage.getItem("cockpit-view") || "today") : "today");
+// hint dismiss, and re-fill pans after any popup
+Object.assign(window, { ECK: { openModal, showView } });
+</script>
+</body>
+</html>

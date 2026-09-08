@@ -1,0 +1,37 @@
+/* preview/_shared.css — chrome for review cards only (not part of the design system) */
+:root{ --pv-hd:var(--fg) }
+body{background:var(--bg);color:var(--fg);font-family:var(--font-ui);margin:0;padding:28px;
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.pv-top{display:flex;align-items:baseline;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.pv-top h1{font-size:clamp(20px,3vw,26px);font-weight:730;letter-spacing:-.02em;margin:0}
+.pv-top .lbl{font-family:var(--font-mono);font-size:12px;color:var(--faint);letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--ln);padding:4px 10px;border-radius:999px}
+.pv-sub{color:var(--mut);font-size:13px;max-width:80ch;margin:0 0 20px}
+.grid{display:grid;gap:14px}
+.sw-cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+section.block{margin:0 0 26px}
+.pv-sec{font-size:13px;color:var(--faint);letter-spacing:.05em;text-transform:uppercase;margin:0 0 12px;font-weight:600}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+/* swatch */
+.sw{border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:var(--srf)}
+.sw .chip{height:56px;border-bottom:1px solid var(--ln)}
+.sw .info{padding:8px 10px}
+.sw .n{font-size:13px;font-weight:600}
+.sw .role{font-size:11px;color:var(--mut);margin-top:2px;line-height:1.35}
+/* type specimen */
+.type-row{padding:10px 0;border-bottom:1px solid var(--ln);display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+.type-row .tt{flex:0 0 170px;font-family:var(--font-mono);font-size:12px;color:var(--faint)}
+/* spacer rows */
+.sp-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+.sp-row .sp-tag{flex:0 0 120px;font-family:var(--font-mono);font-size:12px;color:var(--mut)}
+.sp-bar{flex:0 0 auto;background:var(--acc);border-radius:3px;height:16px}
+.sp-sz{font-family:var(--font-mono);font-size:11px;color:var(--faint)}
+/* radius swatch */
+.rd{display:grid;place-items:center;border:1px solid var(--ln);border-top:3px solid var(--acc);background:var(--srf)}
+.rd .rn{font-family:var(--font-mono);font-size:11px;color:var(--faint)}
+.rd.pill{border-radius:999px}
+/* icon list */
+.ic-chip{display:flex;align-items:center;gap:14px;padding:10px 12px;border:1px solid var(--ln);border-radius:12px;background:var(--srf)}
+.ic-chip svg{width:22px;height:22px;color:var(--fg)}
+.ic-chip .nm{font-family:var(--font-mono);font-size:12.5px;color:var(--mut)}
+a.pvback{color:var(--acc-t);text-decoration:none;font-size:13px}
+a.pvback:hover{text-decoration:underline}

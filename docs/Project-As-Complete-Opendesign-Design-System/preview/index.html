@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>English Cockpit OS · design-system previews</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+  .pc{border:1px solid var(--ln);border-radius:14px;padding:14px;background:var(--srf);display:flex;flex-direction:column;gap:6px}
+  .pc:hover{border-color:#61616b}
+  .pc .n{font-weight:650;font-size:15px;color:var(--fg)}
+  .pc .d{font-size:12.5px;color:var(--mut);line-height:1.5;flex:1}
+  .pc a.text{color:var(--acc-t);font-size:13px;text-decoration:none;font-weight:600}
+  a.text:hover{color:var(--fg)}
+  .grp{font-size:12px;color:var(--faint);letter-spacing:.04em;text-transform:uppercase;margin:22px 0 10px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="pv-top"><h1>Focused preview cards</h1><span class="lbl">English Cockpit OS design system</span></div>
+<p class="pv-sub">Each card isolates one part of the system for fast review. Open the full applied
+interface first to judge the <em>system as a whole</em>, then drill into these layers.</p>
+
+<div class="grp">Start with the applied experience</div>
+<div class="cards">
+  <a class="pc" href="../ui_kits/app/index.html"><span class="n">Applied interface kit (index)</span>
+    <span class="d">Interactive gallery: dark shell → 14 accent cards → shared fresh-render modal. Reuses the token + component stack directly.</span><span class="text">Open kit →</span></a>
+  <a class="pc" href="../english-cockpit-os.html"><span class="n">Preserved source prototype</span>
+    <span class="d">The original interactive.web prototype the system was derived from (kept as authoritative applied reference).</span><span class="text">Open prototype →</span></a>
+</div>
+
+<div class="grp">Focused review cards</div>
+<div class="cards">
+  <a class="pc" href="colors-primary.html"><span class="n">Core palette</span><span class="d">Surfaces, text hierarchy with contrast guarantees, system-blue accent path, semantic states.</span><span class="text">Review →</span></a>
+  <a class="pc" href="brand-assets.html"><span class="n">Brand assets</span><span class="d">14-slot module accent set (C2) + preserved stroke-icon family loaded from assets/icons/.</span><span class="text">Review →</span></a>
+  <a class="pc" href="typography-specimens.html"><span class="n">Typography</span><span class="d">Sans chrome / Georgia serif reading / tabular mono for numerics; kiosk scale.</span><span class="text">Review →</span></a>
+  <a class="pc" href="spacing-tokens.html"><span class="n">Spacing &amp; rhythm</span><span class="d">Gap ladder, working paddings and card rhythm mapped to the tokens.</span><span class="text">Review →</span></a>
+  <a class="pc" href="radius-shadows.html"><span class="n">Radius &amp; elevation</span><span class="d">Radius scale, 44px targets, single deep dialog elevation vs border-based cards.</span><span class="text">Review →</span></a>
+  <a class="pc" href="components-buttons.html"><span class="n">Components</span><span class="d">Buttons, pills, chips, tabs, flashcard, conversation, KPI/metrics in real state.</span><span class="text">Review →</span></a>
+  <a class="pc" href="ui-surfaces.html"><span class="n">Applied UI surfaces</span><span class="d">Today / Practice grids and the shared modal surface assembled from the kit.</span><span class="text">Review →</span></a>
+</div>
+
+<div class="grp">Package docs</div>
+<div class="cards">
+  <a class="pc" href="../DESIGN.md"><span class="n">DESIGN.md</span><span class="d">The full visual &amp; interaction contract — colors, type, layout, components, motion, voice, anti-patterns.</span><span class="text">Read →</span></a>
+  <a class="pc" href="../colors_and_type.css"><span class="n">colors_and_type.css</span><span class="d">Token foundation to paste first — neutral + module accents + type stacks &amp; scale.</span><span class="text">Read →</span></a>
+  <a class="pc" href="../tokens.css"><span class="n">tokens.css</span><span class="d">Spacing, radius, elevation, motion and layout dimensions to paste second.</span><span class="text">Read →</span></a>
+  <a class="pc" href="../context/provenance.md"><span class="n">Provenance</span><span class="d">Evidence ledger — which source line produced each token, and the demo-vs-C2 distinction.</span><span class="text">Read →</span></a>
+</div>
+</body>
+</html>

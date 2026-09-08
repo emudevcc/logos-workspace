@@ -1,0 +1,831 @@
+:root {
+  color-scheme: dark;
+  /* Component-layer neutrals — aligned to the finalized C2 contract and to
+     the DaisyUI "cockpit" theme channel in main.css, so shell and component
+     layers share one grey ramp instead of two drifting copies.
+     --bg/--surface/--surface-2/--text/--muted mirror --bg/--srf/--up/--fg/--mut;
+     --surface-3 is the hairline-adjacent hover/active step (--ln family). */
+  --bg: #1a1a1d;
+  --surface: #242429;
+  --surface-2: #2d2d33;
+  --surface-3: #3c3c44;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --text: #f5f5f7;
+  --muted: #a8a8b2; /* ≥ 4.5:1 on --surface (was #8e8e93 ≈ 4.1:1) */
+  --accent: #0a84ff;
+  --accent-strong: #0a6dd4; /* deep fill for solid accent buttons */
+  --success: #30d158;
+  --danger: #ff453a;
+  --warning: #ff9f0a;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --font-serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --focus: 0 0 0 3px rgba(10, 132, 255, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+.cockpit-status {
+  font-size: 0.72rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cockpit-status[data-state="online"] {
+  color: var(--success);
+  border-color: var(--success);
+}
+.cockpit-status[data-state="offline"] {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.cockpit-stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.greeting {
+  color: var(--text);
+  font-weight: 600;
+}
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+.goal-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.goal-label {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+/* Sidebar numeric metric capsules (replaced emoji labels) */
+.stat-stat,
+.streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 0.78rem;
+  line-height: 1.5;
+} 
+.streak {
+  color: var(--text);
+}
+
+/* ═══ module accent bars — single source of truth (finalized C2 map) ═══
+   One [data-module] key -> one --mc hue; all 14 mutually distinct within a view.
+   Both card surfaces derive their 3px top bar from var(--mc) so content never
+   reintroduces a second, drifting accent list. Yellow-family module hues
+   (#ff9f0a / #ffd60a) accent bar / large glyphs only — never small text. */
+[data-module="today"]        { --mc: #0a84ff; }
+[data-module="word-of-day"]  { --mc: #ff9f0a; }
+[data-module="news"]         { --mc: #5ac8fa; }
+[data-module="podcast"]      { --mc: #bf5af2; }
+[data-module="weekly-plan"]  { --mc: #5e5ce6; }
+[data-module="srs"]          { --mc: #30d158; }
+[data-module="prep"]         { --mc: #ffd60a; }
+[data-module="grammar"]      { --mc: #ff375f; }
+[data-module="shadowing"]    { --mc: #64d2ff; }
+[data-module="voice"]        { --mc: #00c7be; }
+[data-module="speech"]       { --mc: #32d74b; }
+[data-module="radio"]        { --mc: #ff453a; }
+[data-module="declutter"]    { --mc: #ff6482; }
+[data-module="register"]     { --mc: #af52de; }
+
+/* Accent top bar — every module-bearing card picks up its hue via --mc */
+.card {
+  border-top: 3px solid var(--mc, var(--border-strong));
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1.3rem; /* 21px kiosk title */
+  font-weight: 660;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* badge → title */
+  cursor: pointer;
+}
+.badge {
+  flex: 0 0 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--mc, var(--accent)) 12%, transparent);
+  color: var(--mc, var(--accent));
+}
+.badge svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+.card-title::after {
+  content: "↗";
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.card-title:hover::after {
+  opacity: 0.7;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.tag {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  color: var(--accent);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Reading content (Kindle-style serif) */
+.wod-def,
+.wod-examples li,
+.brief p,
+.srs-def,
+.transcript-caption,
+.transcript-segment,
+.dict-es,
+.dict-example,
+.shadow-target,
+.quiz-question,
+.bluf {
+  font-family: var(--font-serif);
+}
+
+.wod-expression {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.wod-term {
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.wod-ipa {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+}
+.wod-def {
+  margin: 0;
+}
+.wod-examples {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.news-list,
+.vocab-list,
+.upgrade-list {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.news-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.news-title {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.news-title:hover {
+  text-decoration: underline;
+}
+.news-source {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vocab-list {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 0.3rem;
+}
+.vocab-term {
+  font-size: 0.85rem;
+}
+
+.audio-player {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+audio {
+  width: 100%;
+}
+
+.chips {
+  display: flex;
+  gap: 0.625rem; /* 10px — breathing between grouped controls */
+  flex-wrap: wrap;
+}
+
+.station-select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.transcript-viewport {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  overflow: hidden;
+}
+.transcript-history {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.transcript-caption {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-top: 1px solid var(--border);
+  background: rgba(10, 132, 255, 0.07);
+  min-height: 1.8em;
+  font-size: 1rem;
+}
+.transcript-segment {
+  margin: 0;
+}
+
+.podcast-transcript {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 0.7rem;
+}
+.podcast-episodes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.episode-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.episode-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.episode-title {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+mark {
+  background: rgba(10, 132, 255, 0.22);
+  color: #8ab4ff;
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+.srs-card {
+  min-height: 120px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background: var(--bg);
+  cursor: pointer;
+  outline: none;
+}
+.srs-card:focus-visible {
+  box-shadow: var(--focus);
+}
+.srs-front-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.srs-front {
+  flex: 1;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+.srs-def {
+  margin: 0 0 0.4rem;
+}
+.srs-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+.srs-status {
+  min-height: 1.2em;
+  color: var(--success);
+  font-size: 0.85rem;
+}
+
+.prep-timer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+.prep-task {
+  font-weight: 600;
+  margin: 0;
+}
+
+.prep-input,
+.declutter-input,
+.voice-scenario {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  resize: vertical;
+}
+
+.bluf {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.7rem;
+  color: var(--text);
+}
+
+.voice-log {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.voice-user {
+  color: var(--text);
+}
+.voice-partner {
+  color: var(--accent);
+}
+
+.hud {
+  display: flex;
+  gap: 1rem;
+}
+.hud-cell {
+  flex: 1;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem;
+  text-align: center;
+}
+.hud-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.hud-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.hud-label[data-pace="slow"] {
+  color: var(--warning);
+}
+.hud-label[data-pace="on-target"] {
+  color: var(--success);
+}
+.hud-label[data-pace="fast"] {
+  color: var(--danger);
+}
+
+.speech-transcript {
+  min-height: 3rem;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem;
+  background: var(--bg);
+  font-size: 0.9rem;
+}
+
+/* Buttons (DaisyUI-consistent: rounded-rect) */
+button,
+.chip {
+  font: inherit;
+  font-size: 0.95rem; /* 15px */
+  font-weight: 500;
+  padding: 0.45rem 0.9rem;
+  min-height: 44px; /* kiosk/touch target */
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+button:hover,
+.chip:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+button.primary:hover {
+  background: var(--accent-strong);
+}
+/* Armed recording state — red fill + white label keeps contrast ≥4.5:1.
+   Turned on by the module whenever recognition/listening is live. */
+button.primary.is-live {
+  background: #ff3b30;
+  border-color: #ff3b30;
+  color: #fff;
+}
+button.primary.is-live > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+button.primary.is-live > span::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  animation: live-pulse 1.2s ease-in-out infinite;
+}
+button.primary.is-live:hover {
+  background: #e02e24;
+  border-color: #e02e24;
+}
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+button:active:not(:disabled),
+.chip:active:not(:disabled) {
+  transform: scale(0.96);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chip.icon {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* macOS segmented control (tab bars) */
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.segmented .chip {
+  border: none;
+  background: transparent;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.segmented .chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: transparent;
+}
+.segmented .chip.is-active {
+  background: var(--surface-3);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.chip.is-live {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.chip.is-live::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: var(--danger);
+  animation: cockpit-pulse 1.2s ease-in-out infinite;
+}
+@keyframes cockpit-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+input:focus-visible,
+.srs-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+/* Solid accent fills get a white ring — a same-hue ring would blend into the fill */
+button.primary:focus-visible,
+.chip.is-active:focus-visible,
+.nav-item.is-active:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92);
+}
+
+/* One-time hints bar */
+.hints {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Dictionary popover */
+.dict-popover {
+  position: fixed;
+  z-index: 100;
+  max-width: 340px;
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+}
+.dict-popover[hidden] {
+  display: none;
+}
+.dict-word {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+.dict-term {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+.dict-ipa {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+.dict-pos {
+  color: var(--accent);
+  font-style: italic;
+  font-size: 0.8rem;
+}
+.dict-es {
+  font-size: 1rem;
+  margin: 0.2rem 0;
+}
+.dict-syn {
+  margin: 0.2rem 0;
+}
+.dict-example {
+  margin: 0.2rem 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Quiz */
+.quiz {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.2rem;
+}
+.quiz button {
+  border-radius: var(--radius-sm);
+  text-align: left;
+  width: 100%;
+}
+.quiz-question {
+  font-weight: 600;
+  margin: 0.3rem 0;
+}
+.quiz-correct {
+  color: var(--success);
+  margin: 0.3rem 0;
+}
+.quiz-wrong {
+  color: var(--danger);
+  margin: 0.3rem 0;
+}
+
+/* Shadowing */
+.shadow-target {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+.shadow-line {
+  margin: 0.4rem 0;
+  line-height: 1.7;
+}
+.shadow-hit {
+  color: var(--success);
+}
+.shadow-miss {
+  color: var(--danger);
+  text-decoration: underline;
+}
+.shadow-score {
+  font-weight: 600;
+  margin: 0.3rem 0;
+}
+
+/* Irregular-verb drill */
+.drill-verb {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.4rem 0;
+}
+.drill-verb .wod-term {
+  font-size: 1.4rem;
+}
+.drill-result {
+  margin: 0.4rem 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Always-visible, styled scrollbars (Chromium) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--surface-3) 88%, #fff);
+  background-clip: padding-box;
+}
+
+/* ═══ spacing rhythm — consistent vertical/horizontal rhythm ═══ */
+.card > .card-body {
+  gap: 0.9rem; /* badge/title row → content */
+}
+[data-slot],
+.module-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* even vertical rhythm between module blocks */
+}
+[data-slot] > *,
+.module-content > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+/* Small controls keep natural width; full-width fields still stretch */
+[data-slot] > button,
+.module-content > button {
+  align-self: flex-start;
+}
+#card-modal-title {
+  margin-bottom: 0.75rem;
+}

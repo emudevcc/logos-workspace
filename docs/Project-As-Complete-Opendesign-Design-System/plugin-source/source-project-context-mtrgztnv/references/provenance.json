@@ -1,0 +1,47 @@
+{
+  "candidateId": "ed257157-84d7-4a14-a606-bb9674049b35",
+  "projectId": "87722d43-143e-408a-863d-ee66ef20bc22",
+  "runId": "088314d4-2acc-4e3a-b40e-ffe47a50d58c",
+  "conversationId": "27bdb0ef-6343-4938-96b3-908b2fd2cf2b",
+  "provenance": {
+    "summary": "Detected from context/source-context.md, DESIGN.md, README.md, SKILL.md, ui_kits/app/README.md after a successful run.",
+    "detectedAt": 1788799417859
+  },
+  "sourceRefs": [
+    {
+      "kind": "file",
+      "value": "context/source-context.md",
+      "label": "context/source-context.md",
+      "size": 1757,
+      "copied": true
+    },
+    {
+      "kind": "file",
+      "value": "DESIGN.md",
+      "label": "DESIGN.md",
+      "size": 20024,
+      "copied": true
+    },
+    {
+      "kind": "file",
+      "value": "README.md",
+      "label": "README.md",
+      "size": 6509,
+      "copied": true
+    },
+    {
+      "kind": "file",
+      "value": "SKILL.md",
+      "label": "SKILL.md",
+      "size": 5234,
+      "copied": true
+    },
+    {
+      "kind": "file",
+      "value": "ui_kits/app/README.md",
+      "label": "ui_kits/app/README.md",
+      "size": 3674,
+      "copied": true
+    }
+  ]
+}

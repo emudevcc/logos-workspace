@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Component · shared module modal (S07)</title>
+<link rel="stylesheet" href="../../../colors_and_type.css" />
+<link rel="stylesheet" href="../../../tokens.css" />
+<link rel="stylesheet" href="../cockpit.css" />
+<style>
+  body{padding:26px} .wrap{display:grid;gap:22px;max-width:980px}
+  .opener{display:flex;gap:16px;align-items:center}
+  .cap,.rowcap{color:var(--faint);letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+  .cap{font-size:15px}
+  .legend{font-size:13px;color:var(--mut);margin-top:14px;max-width:72ch;line-height:1.5}
+  dialog{position:relative;margin:auto}
+  dialog.open{display:flex}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="opener">
+      <h1 class="cap">Shared module modal — mono kicker · serif title · fresh-rendered body · sticky footer</h1>
+      <button class="btn solid" data-open-modal>Open Grammar modal</button>
+    </div>
+    <p class="legend">Esc / backdrop / Done each close; body is fresh-rendered on open (never moves a live DOM node — S07). Accent applies to kicker + active tab via <code>--mc</code> only.</p>
+  </div>
+
+  <dialog id="dlg" aria-labelledby="mt"><!-- transparent; panel defines chrome -->
+    <div class="panel">
+      <div class="phead">
+        <div class="phead-text"><span class="kicker" id="mk"></span><h2 class="serif" id="mt"></h2></div>
+        <button class="xp" data-close aria-label="Close"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+      <div class="pbody" id="pb"></div>
+      <div class="pfoot"><button class="btn soft" data-close>Done</button></div>
+    </div>
+  </dialog>
+</div>
+
+<script type="module">
+  import { icon } from "../../../build/icons.js";
+  const dlg = document.getElementById("dlg"), pb = document.getElementById("pb");
+  const cc = () => `<span class="gap" style="color:var(--mc);font-weight:700">______</span>`;
+  function pane(m, i){
+    if (i===0) return `<div class="cardface serif">She ${cc()} to the shop today.</div>
+      <div class="btn-row"><button class="btn soft" data-choice>went</button>
+      <button class="btn soft" data-choice>goed</button>
+      <button class="btn solid" data-check>Check</button></div>
+      <p class="meta-line" data-fb style="min-height:1.2em"></p>`;
+    if (i===1) return `<div class="cardface serif">He couldn’t ${cc()} the meeting twice.</div>
+      <div class="btn-row"><button class="btn soft" data-choice>put off</button>
+      <button class="btn soft" data-choice>put in</button>
+      <button class="btn solid" data-check>Check</button></div>
+      <p class="meta-line" data-fb style="min-height:1.2em"></p>`;
+    return `<p>Paste a phrase you wrote and ask why a wording reads oddly.</p>
+      <textarea class="ta serif" rows="3" placeholder="e.g. We should talk about the delay soon."></textarea>
+      <button class="btn solid">Ask the coach ${icon("arrow-right")}</button>`;
+  }
+  function open(){
+    document.getElementById("mt").textContent="Verbs & Grammar";
+    document.getElementById("mk").textContent="GRAMMAR";
+    pb.innerHTML = [
+      `<div class="tabs">${["Irregular verbs","Phrasal verbs","Grammar coach"].map((t,i)=>`<button class="tab${i===0?' is-active':''}" data-tab="${i}">${t}</button>`).join("")}</div>`,
+      `<div class="tab-pane" data-pane="0"></div>`,
+      `<div class="tab-pane" data-pane="1" hidden></div>`,
+      `<div class="tab-pane" data-pane="2" hidden></div>`,
+    ].join("");
+    fill(); dlg.showModal();
+  }
+  function fill(){ document.querySelectorAll("#pb .tab-pane").forEach(p=>{ const i=+p.dataset.pane;
+    p.innerHTML=pane("grammar", i); }); }
+  document.querySelector("[data-open-modal]").addEventListener("click", open);
+  pb.addEventListener("click",(e)=>{
+    if (e.target.closest("[data-close]")) { dlg.close(); return; }
+    const tab=e.target.closest("[data-tab]");
+    if (tab){ [...tab.parentElement.children].forEach(b=>{ const on=b===tab; b.classList.toggle("is-active",on); b.setAttribute?.("aria-selected",on); });
+      pb.querySelectorAll(".tab-pane").forEach(p=>{ p.hidden = p.dataset.pane!==tab.dataset.tab; }); return; }
+    const chk=e.target.closest("[data-check]");
+    if (chk){ const g=chk.closest(".btn-row").parentElement.querySelector(".meta-line"); const pick=pb.querySelector(".picked");
+      g.textContent = pick ? "Checked — answered." : "Pick an answer first."; return; }
+    const ch=e.target.closest("[data-choice]");
+    if (ch){ const row=ch.parentElement; row.querySelectorAll("[data-choice]").forEach(x=>{x.classList.remove("picked")}); ch.classList.add("picked"); return; }
+  });
+</script>
+</body>
+</html>

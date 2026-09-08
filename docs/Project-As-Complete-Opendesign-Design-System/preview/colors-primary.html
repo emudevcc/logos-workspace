@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Preview · Core palette</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .stack-example{display:grid;gap:10px}
+  .sample-row{display:flex;gap:24px;align-items:baseline;border-bottom:1px solid var(--ln);padding:6px 2px}
+</style>
+</head>
+<body>
+<div class="pv-top"><a class="pvback" href="index.html">← previews</a>
+  <h1>Core palette</h1><span class="lbl">English Cockpit OS · dark</span></div>
+<p class="pv-sub">Verified macOS-native dark neutrals plus the system-blue identity with derived accent
+path and semantic states. Every chip shows the real token &amp; its exact hex from colors_and_type.css.</p>
+
+<section class="block">
+  <h2 class="pv-sec">Surfaces &amp; hairline</h2>
+  <div class="sw-cols">
+    <div class="sw"><div class="chip" style="background:#1a1a1d"></div><div class="info"><div class="n">--bg</div><div class="role">#1a1a1d · page</div></div></div>
+    <div class="sw"><div class="chip" style="background:#242429"></div><div class="info"><div class="n">--srf</div><div class="role">#242429 · rail / cards / dialog</div></div></div>
+    <div class="sw"><div class="chip" style="background:#2d2d33"></div><div class="info"><div class="n">--up</div><div class="role">#2d2d33 · elevated fills</div></div></div>
+    <div class="sw"><div class="chip" style="background:#3c3c44"></div><div class="info"><div class="n">--ln</div><div class="role">#3c3c44 · hairline</div></div></div>
+  </div>
+</section>
+
+<section class="block">
+  <h2 class="pv-sec">Text — hierarchy with contrast guarantees</h2>
+  <div style="background:#242429;border:1px solid var(--ln);border-radius:14px;padding:18px">
+    <div style="font-size:22px;font-weight:660;color:var(--fg);letter-spacing:-.01em">Primary text · #f5f5f7</div>
+    <div style="font-size:15px;color:var(--mut);margin-top:8px">Secondary text · var(--mut) #a8a8b2 — always ≥4.5:1 on --srf</div>
+    <div style="font-size:12px;color:var(--faint);margin-top:8px;letter-spacing:.03em">Tertiary / kicker · #9696a0</div>
+    <div class="sw-cols" style="margin-top:16px">
+      <div class="sw"><div class="chip" style="background:#f5f5f7"></div><div class="info"><div class="n">--fg</div><div class="role">#f5f5f7 · body text</div></div></div>
+      <div class="sw"><div class="chip" style="background:#a8a8b2"></div><div class="info"><div class="n">--mut</div><div class="role">#a8a8b2 · secondary</div></div></div>
+      <div class="sw"><div class="chip" style="background:#9696a0"></div><div class="info"><div class="n">--faint</div><div class="role">#9696a0 · tertiary</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <h2 class="pv-sec">System accent — one identity hue</h2>
+  <div class="sw-cols">
+    <div class="sw"><div class="chip" style="background:#0a84ff"></div><div class="info"><div class="n">--acc</div><div class="role">#0a84ff · decoration</div></div></div>
+    <div class="sw"><div class="chip" style="background:#2f9bff"></div><div class="info"><div class="n">--acc-t</div><div class="role">#2f9bff · text ≥4.5:1</div></div></div>
+    <div class="sw"><div class="chip" style="background:#0a6dd4"></div><div class="info"><div class="n">--acc-d</div><div class="role">#0a6dd4 · solid fill, white ≥4.5:1</div></div></div>
+    <div class="sw"><div class="chip" style="background:#085eb6"></div><div class="info"><div class="n">--acc-dh</div><div class="role">#085eb6 · solid hover</div></div></div>
+  </div>
+</section>
+
+<section class="block">
+  <h2 class="pv-sec">Semantic states</h2>
+  <div class="sw-cols">
+    <div class="sw"><div class="chip" style="background:#30d158"></div><div class="info"><div class="n">--ok</div><div class="role">#30d158 · online / correct</div></div></div>
+    <div class="sw"><div class="chip" style="background:#ff3b30"></div><div class="info"><div class="n">--live</div><div class="role">#ff3b30 · recording / live</div></div></div>
+    <div class="sw"><div class="chip" style="background:#e02e24"></div><div class="info"><div class="n">--live-h</div><div class="role">#e02e24 · live hover</div></div></div>
+    <div class="sw"><div class="chip" style="background:#ff5f57"></div><div class="info"><div class="n">--tl-close</div><div class="role">traffic light (decor)</div></div></div>
+  </div>
+</section>
+</body>
+</html>

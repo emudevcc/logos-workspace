@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Component · macOS-style sidebar navig</title>
+<link rel="stylesheet" href="../../../colors_and_type.css" />
+<link rel="stylesheet" href="../../../tokens.css" />
+<link rel="stylesheet" href="../cockpit.css" />
+<style>
+  html,body{height:100%}
+  .demo-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:26px;height:100%}
+  .rail-mini{width:100%;border:none;padding:16px} /* reuse cockpit .rail but unbounded width */
+  @media(max-width:900px){.demo-row{grid-template-columns:1fr}}
+  h2.cap{font-size:15px;color:var(--faint);letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="demo-row">
+  <section>
+    <h2 class="cap">Nav — idle / hover / active / focus</h2>
+    <nav class="navs" aria-label="Sections demo">
+      <button class="nav is-active" data-od-demo-nav aria-current="page"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg><span>Today</span></button>
+      <button class="nav"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".5"/></svg><span>Practice</span></button>
+      <button class="nav"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 19v3"/></svg><span>Speak</span></button>
+    </nav>
+    <p class="meta-line" style="margin-top:14px">Click any item to set it active. Use <kbd>Tab</kbd> to see the focus ring on the second item.</p>
+  </section>
+
+  <section>
+    <h2 class="cap">Status foot (S02) — tabular goal + refresh</h2>
+    <div class="foot" style="width:280px">
+      <div class="f1"><svg width="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg><span>Good morning</span></div>
+      <div class="f2">
+        <svg class="goal-ring" viewBox="0 0 40 40" aria-hidden="true">
+          <circle class="track" cx="20" cy="20" r="17"/>
+          <circle class="bar" id="ringBar" cx="20" cy="20" r="17" stroke-dasharray="107" stroke-dashoffset="75"/>
+        </svg>
+        <span class="goal-label"><i>Daily goal · reviews done</i><b>6 / 20</b></span>
+        <button class="ref-touch" type="button" title="next auto refresh" aria-label="Next refresh 41:07">
+          <svg width="18" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
+      </div>
+    </div>
+    <p class="meta-line" style="margin-top:14px">Ring arc + numerals derive from the <b>same</b> value — the “6 / 20” and dashoffset 75 are one contract.</p>
+  </section>
+</div>
+<script>
+  // make the top nav switchable like the shell; isolate to this page
+  const navs = document.querySelectorAll("[data-od-demo-nav]");
+  navs.forEach((b, i, arr) => b.addEventListener("click", () => {
+    arr.forEach((x) => { x.classList.remove("is-active"); x.removeAttribute("aria-current"); });
+    b.classList.add("is-active"); b.setAttribute("aria-current", "page");
+  }));
+</script>
+</body>
+</html>

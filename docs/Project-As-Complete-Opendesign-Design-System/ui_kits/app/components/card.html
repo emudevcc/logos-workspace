@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Component · module summary card</title>
+<link rel="stylesheet" href="../../../colors_and_type.css" />
+<link rel="stylesheet" href="../../../tokens.css" />
+<link rel="stylesheet" href="../cockpit.css" />
+<style>
+  .wrap{padding:26px;max-width:1180px}
+  .cap{font-size:15px;color:var(--faint);letter-spacing:.04em;text-transform:uppercase;margin:0 0 14px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:700px){.grid{grid-template-columns:1fr}}
+  .note{font-size:13px;color:var(--mut);margin-top:18px;max-width:66ch}
+  .arrow svg{width:15px;height:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2 class="cap">Summary card — 44px badge, accent bar, Open cue</h2>
+  <div class="grid" data-accent-line>
+    <!-- populated sample cards -->
+  </div>
+  <p class="note">Card border-top 3px + badge tint/stroke share one hue (<code>--mc</code>) set via
+  <code>data-open</code> module. Hover brightens text and border, still dark; never a hue-based lighten.
+  Tap a card to toggle its “active” press. Real summary copy from the source prototype.</p>
+</div>
+
+<script type="module">
+  import { icon } from "../../../build/icons.js";
+  const doc = [{m:"srs",t:"Spaced Repetition Flashcards",k:"spaced repetition",
+      s:`<div class="kpis" style="display:flex;gap:24px"><div><b>14</b><span>new</span></div><div><b>6</b><span>to review</span></div></div>`},
+    {m:"prep",t:"Rapid-Fire PREP Drill",k:"timed drill",
+      s:`<p>Translate prompts against the clock.</p><div class="count-num">0:00</div>`},
+    {m:"declutter",t:"Writing Coach",k:"text coach",
+      s:`<p>Polish or correct one of your own drafts, with weak verbs highlighted.</p>`},
+  ];
+  const ACC = {srs:"#37d67a",prep:"#1bc8cd",declutter:"#ff6f92"};
+  const grid = document.querySelector(".grid");
+  const ar = () => icon("arrow-right","");
+  doc.forEach(({m,t,k,s}) => {
+    const a = document.createElement("article");
+    a.className="card"; a.setAttribute("role","button"); a.tabIndex=0;
+    a.style.setProperty("--mc",ACC[m]);
+    a.innerHTML=`<div class="book-row"><span class="badge svgbox">${icon(m,"")}</span>
+      <div><h2>${t}</h2><div class="card-kicker">${k}</div></div></div>
+      <div class="card-sum">${s}</div>
+      <span class="open-cue">Open ${ar()}</span>`;
+    grid.appendChild(a);
+  });
+</script>
+</body>
+</html>

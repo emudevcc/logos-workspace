@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cockpit">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Logos Workspace</title>
+    <link rel="stylesheet" href="/static/css/main.css" />
+    <link rel="stylesheet" href="/static/css/cockpit.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="app-sidebar">
+        <h1 class="app-title">Logos Workspace</h1>
+        <nav class="app-nav" aria-label="Dashboard sections">
+          <button class="nav-item is-active" type="button" data-view="today">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Today
+          </button>
+          <button class="nav-item" type="button" data-view="practice">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            Practice
+          </button>
+          <button class="nav-item" type="button" data-view="speak">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+            Speak
+          </button>
+          <button class="nav-item" type="button" data-view="write">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            Write
+          </button>
+        </nav>
+        <div class="app-sidebar-foot">
+          <div class="cockpit-stats" id="cockpit-stats" aria-label="Progress"></div>
+          <span id="ws-status" class="cockpit-status" data-state="offline" role="status" aria-live="polite">offline</span>
+        </div>
+      </aside>
+
+      <main class="app-main">
+        <section class="app-view" data-view-panel="today">
+          <h2 class="view-title">Today</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+            <section class="card bg-primary/10 shadow-sm magic-gradient-border" data-module="today" aria-labelledby="today-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="today-title">Your next step</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="word-of-day" aria-labelledby="wod-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="wod-title">Word &amp; Idiom of the Day</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="news" aria-labelledby="news-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="news-title">Tech &amp; Business News Pulse</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="podcast" aria-labelledby="podcast-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="podcast-title">Daily Audio &amp; Podcast Digest</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="weekly-plan" aria-labelledby="weekly-plan-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="weekly-plan-title">Weekly Plan</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="app-view" data-view-panel="practice" hidden>
+          <h2 class="view-title">Practice</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+            <section class="card bg-base-200 shadow-sm" data-module="srs" aria-labelledby="srs-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="srs-title">Spaced Repetition Flashcards</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="prep" aria-labelledby="prep-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="prep-title">Rapid-Fire PREP Drill</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="grammar" aria-labelledby="grammar-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="grammar-title">Verbs &amp; Grammar</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="shadowing" aria-labelledby="shadowing-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="shadowing-title">Pronunciation Practice</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="app-view" data-view-panel="speak" hidden>
+          <h2 class="view-title">Speak</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+            <section class="card bg-base-200 shadow-sm" data-module="voice" aria-labelledby="voice-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="voice-title">Voice Roleplay Partner</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="speech" aria-labelledby="speech-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="speech-title">Speech-Metrics Coach</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="radio" aria-labelledby="radio-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="radio-title">Live Radio &amp; Teleprompter</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="app-view" data-view-panel="write" hidden>
+          <h2 class="view-title">Write</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+            <section class="card bg-base-200 shadow-sm" data-module="declutter" aria-labelledby="declutter-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="declutter-title">Writing Coach</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+
+            <section class="card bg-base-200 shadow-sm" data-module="register" aria-labelledby="register-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="register-title">Register Swap</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="card-modal" class="modal">
+      <div class="modal-box max-w-3xl">
+        <form method="dialog">
+          <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Close">✕</button>
+        </form>
+        <h3 class="card-title mb-3" id="card-modal-title"></h3>
+        <div id="card-modal-body"></div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
+    </dialog>
+
+    <script type="module" src="/static/js/main.js"></script>
+  </body>
+</html>

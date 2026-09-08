@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Preview · Components</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<link rel="stylesheet" href="_shared.css" />
+<link rel="stylesheet" href="../ui_kits/app/cockpit.css" />
+<style>
+  .cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+  .demo-widget{background:var(--srf);border:1px solid var(--ln);border-radius:14px;padding:16px}
+  .demo-widget .dw-cap{font-size:12px;color:var(--faint);letter-spacing:.05em;text-transform:uppercase;margin:0 0 12px;font-weight:600}
+  .stack{display:flex;flex-direction:column;gap:9px}
+</style>
+</head>
+<body>
+<div class="pv-top"><a class="pvback" href="index.html">← previews</a>
+  <h1>Components</h1><span class="lbl">live states · ui_kits/app</span></div>
+<p class="pv-sub">Canonical control set pulled live from ui_kits/app/cockpit.css with contrast-safe state
+pairs. One solid primary per widget; hover/focus shift the background, never the foreground toward --mut.</p>
+
+<div class="cols">
+
+  <div class="demo-widget">
+    <h2 class="dw-cap">Buttons</h2>
+    <div class="stack">
+      <button class="btn solid">Study next card</button>
+      <button class="btn soft">Play model</button>
+      <button class="btn line">Transcript</button>
+      <button class="btn solid live">● Recording…</button>
+    </div>
+  </div>
+
+  <div class="demo-widget">
+    <h2 class="dw-cap">Status &amp; grade pills</h2>
+    <div class="btn-row" style="margin-bottom:12px"><span class="phase-pill ok">14 new</span><span class="phase-pill rev">6 review</span></div>
+    <span class="status" style="margin-right:10px"><i></i>Online</span>
+    <span style="color:var(--mut);font-size:12.5px">#30d158 online text/border</span>
+  </div>
+
+  <div class="demo-widget">
+    <h2 class="dw-cap">Segmented tabs</h2>
+    <div class="tabs"><button class="tab is-active">Repeat</button><button class="tab">Playback quiz</button></div>
+    <p class="pv-sub">Active white + 2px <span class="mono">--mc</span> underline.</p>
+  </div>
+
+  <div class="demo-widget">
+    <h2 class="dw-cap">Flashcard + grade band</h2>
+    <div class="cardface serif" style="font-size:22px;padding:16px 12px"><b>results</b></div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn soft">Again</button><button class="btn soft">Hard</button>
+      <button class="btn soft">Good</button><button class="btn solid">Easy</button>
+    </div>
+  </div>
+
+  <div class="demo-widget">
+    <h2 class="dw-cap">Conversation balloon</h2>
+    <div class="conv">
+      <div class="co them serif">Good news — our AI round closed ahead of plan.</div>
+      <div class="co me serif">That should keep the lab fully staffed for the year.</div>
+    </div>
+  </div>
+
+  <div class="demo-widget">
+    <h2 class="dw-cap">KPI / metrics</h2>
+    <div class="kpi-row"><div><b class="mono">14</b><span>new</span></div><div><b class="mono">6</b><span>to review</span></div></div>
+    <div class="metic" style="margin-top:12px"><div><b class="mono">142</b><span>WPM</span></div><div><b class="mono">2</b><span>fill/min</span></div><div><b class="mono">—</b><span>cadence</span></div></div>
+  </div>
+</div>
+</body>
+</html>

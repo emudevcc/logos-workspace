@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Preview · Module accents &amp; icon assets</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .acc{display:flex;align-items:center;gap:12px;border:1px solid var(--ln);border-radius:12px;padding:8px 12px;background:var(--srf)}
+  .acc .dot{width:22px;height:22px;border-radius:7px;flex:0 0 auto}
+  .acc .mod{font-weight:600;font-size:13.5px}
+  .acc .hex{font-family:var(--font-mono);font-size:11.5px;color:var(--faint);margin-left:auto}
+  .acc .view{font-size:11px;color:var(--mut)}
+  .btn-row{margin-top:12px;flex-wrap:wrap}
+  .phase-pill{margin-right:6px}
+</style>
+</head>
+<body>
+<div class="pv-top"><a class="pvback" href="index.html">← previews</a>
+  <h1>Module accents &amp; icon set</h1><span class="lbl">14-slot C2 map · preserved sources</span></div>
+<p class="pv-sub"><b>Accent hues</b> = finalized per-module C2 map (canonical spec in
+implementation guide); <b>icons</b> are the preserved 24×24 stroke set extracted to
+<code>assets/icons/</code> and rendered here from the same exported files. Within-view distinctness is a
+hard rule; see DESIGN.md §2.</p>
+
+<section class="block">
+  <h2 class="pv-sec">14 modules · hue → view (left→right uses each on one card)</h2>
+  <div class="sw-cols">
+    <div class="acc"><i class="dot" style="background:#0a84ff"></i><div><div class="mod">today</div><div class="view">Today</div></div><span class="hex">#0a84ff</span></div>
+    <div class="acc"><i class="dot" style="background:#ff9f0a"></i><div><div class="mod">word-of-day</div><div class="view">Today</div></div><span class="hex">#ff9f0a</span></div>
+    <div class="acc"><i class="dot" style="background:#5ac8fa"></i><div><div class="mod">news</div><div class="view">Today</div></div><span class="hex">#5ac8fa</span></div>
+    <div class="acc"><i class="dot" style="background:#bf5af2"></i><div><div class="mod">podcast</div><div class="view">Today</div></div><span class="hex">#bf5af2</span></div>
+    <div class="acc"><i class="dot" style="background:#5e5ce6"></i><div><div class="mod">weekly-plan</div><div class="view">Today</div></div><span class="hex">#5e5ce6</span></div>
+    <div class="acc"><i class="dot" style="background:#30d158"></i><div><div class="mod">srs</div><div class="view">Practice</div></div><span class="hex">#30d158</span></div>
+    <div class="acc"><i class="dot" style="background:#ffd60a;border:1px solid var(--ln)"></i><div><div class="mod">prep</div><div class="view">Practice</div></div><span class="hex">#ffd60a</span></div>
+    <div class="acc"><i class="dot" style="background:#ff375f"></i><div><div class="mod">grammar</div><div class="view">Practice</div></div><span class="hex">#ff375f</span></div>
+    <div class="acc"><i class="dot" style="background:#64d2ff"></i><div><div class="mod">shadowing</div><div class="view">Practice</div></div><span class="hex">#64d2ff</span></div>
+    <div class="acc"><i class="dot" style="background:#00c7be"></i><div><div class="mod">voice</div><div class="view">Speak</div></div><span class="hex">#00c7be</span></div>
+    <div class="acc"><i class="dot" style="background:#32d74b"></i><div><div class="mod">speech</div><div class="view">Speak</div></div><span class="hex">#32d74b</span></div>
+    <div class="acc"><i class="dot" style="background:#ff453a"></i><div><div class="mod">radio</div><div class="view">Speak</div></div><span class="hex">#ff453a</span></div>
+    <div class="acc"><i class="dot" style="background:#ff6482"></i><div><div class="mod">declutter</div><div class="view">Write</div></div><span class="hex">#ff6482</span></div>
+    <div class="acc"><i class="dot" style="background:#af52de"></i><div><div class="mod">register</div><div class="view">Write</div></div><span class="hex">#af52de</span></div>
+  </div>
+  <p class="pv-sub" style="margin-top:10px">Rules: <span class="mono" style="color:var(--acc-t)">--mc</span> decor only ·
+  live text uses a bright ≥4.5:1 variant · solids use a deep fill. Yellow-family (#ff9f0a / #ffd60a) is
+  decoration/large only, never &lt;14px text or light fills.</p>
+</section>
+
+<section class="block">
+  <h2 class="pv-sec">Preserved icon set (from assets/icons/)</h2>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:10px">
+    <div class="ic-chip"><img src="../assets/icons/module-srs.svg" alt="srs icon" style="width:22px;height:22px"><span class="nm">module-srs</span></div>
+    <div class="ic-chip"><img src="../assets/icons/module-prep.svg" alt="prep icon" style="width:22px;height:22px"><span class="nm">module-prep</span></div>
+    <div class="ic-chip"><img src="../assets/icons/module-grammar.svg" alt="grammar icon" style="width:22px;height:22px"><span class="nm">module-grammar</span></div>
+    <div class="ic-chip"><img src="../assets/icons/module-shadowing.svg" alt="shadowing icon" style="width:22px;height:22px"><span class="nm">module-shadowing</span></div>
+    <div class="ic-chip"><img src="../assets/icons/module-voice.svg" alt="voice icon" style="width:22px;height:22px"><span class="nm">module-voice</span></div>
+    <div class="ic-chip"><img src="../assets/icons/module-speech.svg" alt="speech icon" style="width:22px;height:22px"><span class="nm">module-speech</span></div>
+    <div class="ic-chip"><img src="../assets/icons/ui-bolt.svg" alt="bolt icon" style="width:22px;height:22px"><span class="nm">ui-bolt</span></div>
+    <div class="ic-chip"><img src="../assets/icons/ui-refresh.svg" alt="refresh icon" style="width:22px;height:22px"><span class="nm">ui-refresh</span></div>
+    <div class="ic-chip"><img src="../assets/icons/ui-close.svg" alt="close icon" style="width:22px;height:22px"><span class="nm">ui-close</span></div>
+  </div>
+  <p class="pv-sub" style="margin-top:10px">All <span class="mono">currentColor</span>, 24 viewBox, 1.8 stroke.
+  Full set head to <code>../ui_kits/app/index.html</code> which renders all 14 on cards.</p>
+</section>
+</body>
+</html>

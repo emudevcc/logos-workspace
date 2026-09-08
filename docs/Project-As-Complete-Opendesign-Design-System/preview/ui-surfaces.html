@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Preview · Applied UI surfaces</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<link rel="stylesheet" href="_shared.css" />
+<link rel="stylesheet" href="../ui_kits/app/cockpit.css" />
+<style>
+  .demo{background:var(--bg);border-radius:16px;padding:20px;border:1px solid var(--ln)}
+  .mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  @media(max-width:760px){.mini-grid{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:14px}
+  .line{margin:26px 0 6px;padding-top:16px;border-top:1px solid var(--ln);font-size:12px;color:var(--faint);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+  .pill-ok .badge{margin-right:2px}
+</style>
+</head>
+<body>
+<div class="pv-top"><a class="pvback" href="index.html">← previews</a>
+  <h1>Applied UI surfaces</h1><span class="lbl">tile layer preserves real layout</span></div>
+<p class="pv-sub">The living proof that the kit renders as a kiosk dashboard. Compare directly with the
+full interactive app at <code>ui_kits/app/index.html</code> and the preserved prototype
+<code>english-cockpit-os.html</code> — same badges, accent bars, serif faces and shared modal shape.</p>
+
+<div class="line">Today overview — actionable block + lighter digests</div>
+<div class="demo"><section class="view g3" style="grid-template-columns:repeat(3,1fr)">
+  <article class="card" style="--mc:#0a84ff"><div class="book-row"><span class="badge svgbox"><img src="../assets/icons/module-today.svg" alt="" style="width:24px;height:24px"></span>
+    <div><h2>Your next step</h2><div class="card-kicker">next step</div></div></div>
+    <div class="card-sum"><p>One focused block — start with the next due review.</p></div>
+    <span class="open-cue">Open ↗</span></article>
+  <article class="card" style="--mc:#ff9f0a"><div class="book-row"><span class="badge svgbox"><img src="../assets/icons/module-word-of-day.svg" alt="" style="width:24px;height:24px"></span>
+    <div><h2>Word &amp; Idiom of the Day</h2><div class="card-kicker">reading + vocab</div></div></div>
+    <div class="card-sum serif" style="font-size:19px;line-height:1.5">serendipity<div class="mut" style="font-size:13.5px;font-family:var(--font-ui)">finding something good without looking for it</div></div>
+    <span class="open-cue">Open ↗</span></article>
+  <article class="card" style="--mc:#5ac8fa"><div class="book-row"><span class="badge svgbox"><img src="../assets/icons/module-news.svg" alt="" style="width:24px;height:24px"></span>
+    <div><h2>Tech &amp; Business News</h2><div class="card-kicker">reading + quiz</div></div></div>
+    <div class="card-sum"><p>'AI funding round aimed at small UK labs.'</p><p class="mut" style="font-size:12px;margin-top:8px">3 headlines · 2 words</p></div>
+    <span class="open-cue">Open ↗</span></article>
+</section></div>
+
+<div class="line">Practice — SRS cards with KPI + phase chips</div>
+<div class="demo"><section class="view g3" style="grid-template-columns:repeat(2,1fr)">
+  <article class="card" style="--mc:#37d67a"><div class="book-row"><span class="badge svgbox"><img src="../assets/icons/module-srs.svg" alt="" style="width:24px;height:24px"></span>
+    <div><h2>Spaced Repetition</h2><div class="card-kicker">spaced repetition</div></div></div>
+    <div class="card-sum"><div class="kpi-row"><div><b class="mono">14</b><span>new</span></div><div><b class="mono">6</b><span>to review</span></div></div></div>
+    <span class="open-cue">Open ↗</span></article>
+  <div class="col">
+    <div class="phase-pill ok">14 new</div><div class="phase-pill rev">6 review</div>
+    <div class="count-num" style="margin:10px 0">0:00</div>
+    <div class="meta-line">PREP timed drill · 90s round.</div>
+  </div>
+</section></div>
+
+<div class="line">Shared detail surface — flashcard in modal (serif face + grade)</div>
+<div class="demo"><div class="panel">
+  <div class="phead"><div class="phead-text"><span class="kicker" style="color:#30d158">spaced repetition</span><h2 class="serif">Spaced Repetition Flashcards</h2></div>
+    <button class="xp" aria-label="Close"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="pbody">
+    <div class="btn-row"><span class="phase-pill ok">14 new</span><span class="phase-pill rev">6 review</span></div>
+    <div class="cardface serif"><b>novel</b><div class="phon">/ˈnɒv.əl/</div></div>
+    <div class="btn-row center"><button class="btn soft">Flip →</button></div>
+    <div class="btn-row center"><button class="btn soft">Again</button><button class="btn soft">Hard</button>
+      <button class="btn soft">Good</button><button class="btn solid">Easy</button></div>
+  </div>
+  <div class="pfoot"><button class="btn soft">Done</button></div>
+</div></div>
+</body>
+</html>

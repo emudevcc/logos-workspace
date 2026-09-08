@@ -1,0 +1,261 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: false;
+}
+@plugin "daisyui/theme" {
+  name: "cockpit";
+  default: true;
+  color-scheme: dark;
+  --color-base-100: #1a1a1d;
+  --color-base-200: #242429;
+  --color-base-300: #3c3c44;
+  --color-base-content: #f5f5f7;
+  --color-primary: #0a84ff;
+  --color-primary-content: #ffffff;
+  --color-secondary: #64d2ff;
+  --color-secondary-content: #000000;
+  --color-accent: #bf5af2;
+  --color-accent-content: #ffffff;
+  --color-neutral: #2d2d33;
+  --color-neutral-content: #f5f5f7;
+  --color-info: #64d2ff;
+  --color-info-content: #000000;
+  --color-success: #30d158;
+  --color-success-content: #000000;
+  --color-warning: #ff9f0a;
+  --color-warning-content: #000000;
+  --color-error: #ff453a;
+  --color-error-content: #000000;
+  --radius-selector: 8px;
+  --radius-field: 8px;
+  --radius-box: 12px;
+}
+
+/* C2 --mut: secondary text on dark shell (nav idle, icon labels) */
+:root {
+  --color-muted: #a8a8b2;
+}
+
+/* macOS shell */
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-sidebar {
+  width: 15rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--color-base-200);
+  border-right: 1px solid var(--color-base-300);
+}
+
+.app-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-base-content);
+}
+
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 0.75rem; /* ≥44px hit target */
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-muted);
+  background: transparent;
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-base-content);
+}
+.nav-item.is-active {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+.nav-item.is-active:hover {
+  background: color-mix(in srgb, var(--color-primary) 84%, #000);
+}
+
+.app-sidebar-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-base-content);
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: var(--color-base-100);
+}
+
+.app-view[hidden] {
+  display: none;
+}
+
+.view-title {
+  margin: 0 0 1rem;
+  font-size: 1.875rem; /* 30px hero, kiosk 1–3 m */
+  font-weight: 730;
+  letter-spacing: -0.02em;
+  color: var(--color-base-content);
+}
+
+/* Sidebar stats (vertical stack, not the old horizontal header) */
+.app-sidebar .cockpit-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.app-sidebar .greeting {
+  font-size: 0.85rem;
+}
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* MagicUI-style effects (vanilla ports).
+   Gated to (pointer: fine): the kiosk target runs Chromium with --disable-gpu
+   and is never charged for pointer-tracked or perpetual GPU effects — the only
+   unconditional flourish is the section fade-in at the bottom of this file.
+   Global prefers-reduced-motion handling lives in cockpit.css and strips every
+   animation/transition for users who ask for it. */
+
+/* Animated gradient border — @property stays global (zero-cost declaration) */
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@media (pointer: fine) {
+  /* Spotlight card — mouse-tracked radial glow */
+  .card {
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      260px circle at var(--x, 50%) var(--y, 50%),
+      rgba(10, 132, 255, 0.16),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .card:hover::before {
+    opacity: 1;
+  }
+
+  /* Shimmer button (Magic Button sweep) */
+  .btn-primary,
+  .magic-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::after,
+  .magic-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 80%
+    );
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  .btn-primary:hover::after,
+  .magic-shimmer:hover::after {
+    animation: magic-shine 0.8s ease;
+  }
+  @keyframes magic-shine {
+    to {
+      transform: translateX(120%);
+    }
+  }
+
+  /* Rotating gradient border */
+  .magic-gradient-border {
+    position: relative;
+  }
+  .magic-gradient-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--angle),
+      transparent 0%,
+      #0a84ff 25%,
+      #bf5af2 50%,
+      transparent 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: magic-rotate 6s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes magic-rotate {
+    to {
+      --angle: 360deg;
+    }
+  }
+}
+
+/* Fade-in on section switch */
+.app-view:not([hidden]) {
+  animation: magic-fade 0.3s ease;
+}
+@keyframes magic-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

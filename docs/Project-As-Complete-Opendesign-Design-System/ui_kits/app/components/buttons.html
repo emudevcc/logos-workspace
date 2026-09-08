@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Component · buttons &amp; states</title>
+<link rel="stylesheet" href="../../../colors_and_type.css" />
+<link rel="stylesheet" href="../../../tokens.css" />
+<link rel="stylesheet" href="../cockpit.css" />
+<style>
+  .rows{padding:26px;display:flex;flex-direction:column;gap:20px;max-width:760px}
+  .kicker,.cap{font-size:15px;color:var(--faint);letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+  .kicker{color:var(--mut);font-size:13px;margin:0 0 8px}
+  .rowcap{font-size:15px;color:var(--faint);letter-spacing:.03em;text-transform:uppercase;font-weight:600;margin:0 0 12px}
+  .btn-row{flex-wrap:wrap}
+  .legend{font-size:13px;color:var(--mut);margin:2px 0 22px}
+</style>
+</head>
+<body>
+<div class="rows">
+  <h1 class="cap" style="font-size:17px">Buttons — solid / soft / line / live + picked</h1>
+  <p class="legend">Solid uses <code>--acc-d</code> (white ≥4.5:1); live is the armed record/listen control; picked is the SRS “grade” state. All ≥44px hit, focus ring never blends into the fill.</p>
+
+  <section>
+    <p class="rowcap">Primary / solid (identity blue, deep fill)</p>
+    <div class="btn-row">
+      <button class="btn solid">Study next card <svg width="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button class="btn solid">Add to review</button>
+    </div>
+    <p class="legend">Hover shifts <code>--acc-d → --acc-dh</code> (darker). Focus ring is white so it reads on the blue fill.</p>
+  </section>
+
+  <section>
+    <p class="rowcap">Armed / live (recording · listening · live)</p>
+    <div class="btn-row">
+      <button class="btn solid" data-press data-rest="Record">Record your reply <svg width="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button class="btn soft" data-moment data-rest="Clear">Clear</button>
+    </div>
+    <p class="legend">Press & hold → live red with “● Recording…”, toggles <code>aria-pressed</code>. Momentary shown for Compare.</p>
+  </section>
+
+  <section>
+    <p class="rowcap">Grade / choice (picked = correct)</p>
+    <div class="btn-row">
+      <button class="btn soft">Again</button>
+      <button class="btn soft">Hard</button>
+      <button class="btn soft">Good</button>
+      <button class="btn solid" data-grade>Easy</button>
+    </div>
+    <p class="legend">Tap Easy → flips to green picked; keyboard 1–4 mirrors this in the Flashcards modal.</p>
+  </section>
+
+  <section>
+    <p class="rowcap">Soft · line · ghost (secondary, one primary per surface)</p>
+    <div class="btn-row">
+      <button class="btn soft">Play model</button>
+      <button class="btn line">Transcript</button>
+      <button class="btn ghost">Glossary</button>
+      <button class="btn soft" disabled>Disabled</button>
+    </div>
+  </section>
+
+  <section>
+    <p class="rowcap">Choice pills inside a grammar prompt</p>
+    <div class="btn-row" data-choicegroup>
+      <button class="btn soft" data-choice>went</button>
+      <button class="btn soft" data-choice>goed</button>
+      <button class="btn soft" data-choice>gone</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  /* armed / live */
+  document.querySelectorAll("[data-press]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const rest = b.dataset.rest;
+      const on = b.classList.toggle("live");
+      b.setAttribute("aria-pressed", on);
+      if (on) b.textContent = "● Recording…";
+      else b.innerHTML = (rest + ' <svg width="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>');
+    });
+  });
+  document.querySelectorAll("[data-moment]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const rest = b.dataset.rest; b.classList.add("live"); b.textContent="● …";
+      setTimeout(() => { b.classList.remove("live"); b.textContent = rest; }, 600);
+    });
+  });
+  /* grade & pick choice (single-select per group) */
+  function pickOwn(btn){
+    const grp = btn.closest("[data-choicegroup]") || btn.parentElement;
+    grp.querySelectorAll("[data-choice], [data-grade]").forEach(x => { x.classList.remove("picked"); });
+    btn.classList.add("picked");
+  }
+  document.querySelectorAll("[data-grade]").forEach((g)=> g.addEventListener("click",()=> {
+    const i=0; pickOwn(g);
+    if (!document.querySelector('[data-choicegroup] [data-choice="Easy"]')) {} // no-op guard
+  }));
+  document.querySelectorAll("[data-choice]").forEach((c)=> c.addEventListener("click",()=> pickOwn(c)));
+</script>
+</body>
+</html>

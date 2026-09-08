@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Preview · Radius &amp; elevation</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .rdcol{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:760px){.rdcol{grid-template-columns:repeat(2,1fr)}}
+  .rd{height:92px;padding:0 10px}
+  .rd .rn{display:block;margin-top:auto;text-align:center;padding-bottom:10px}
+  .sh{border-radius:14px;background:var(--srf);padding:16px;border:1px solid var(--ln)}
+  .sh .t{font-size:13px;font-weight:600;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="pv-top"><a class="pvback" href="index.html">← previews</a>
+  <h1>Radius &amp; elevation</h1><span class="lbl">--r ladder · tokens.css</span></div>
+
+<section class="block">
+  <h2 class="pv-sec">Radius (rounded squares + one pill)</h2>
+  <div class="rdcol">
+    <div class="rd" style="border-radius:8px;background:var(--srf);border:1px solid var(--ln)"><span class="rn">8 · icon-hit · --r-xs</span></div>
+    <div class="rd" style="border-radius:11px;background:var(--srf);border:1px solid var(--ln)"><span class="rn">11 · buttons/nav · --r-sm</span></div>
+    <div class="rd" style="border-radius:13px;background:var(--srf);border:1px solid var(--ln)"><span class="rn">13 · badge/foot · --r-md</span></div>
+    <div class="rd" style="border-radius:14px;background:var(--srf);border-top:3px solid var(--acc);border:1px solid var(--ln)"><span class="rn">14 · card / dialog-block<br>--r-card</span></div>
+    <div class="rd pill" style="background:var(--srf);border:1px solid var(--acc-d)"><span class="rn">999 · status · chips</span></div>
+  </div>
+  <p class="pv-sub" style="margin-top:10px">Cards use borders, never soft shadows, for their resting surface. The single deep elevation is reserved for the dialog.</p>
+</section>
+
+<section class="block">
+  <h2 class="pv-sec">Elevation</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">
+    <div class="sh">resting card <div style="border:1px dashed var(--ln);margin-top:8px;padding:12px;border-radius:10px;background:var(--bg)">1px --ln border → hover #61616b</div></div>
+    <div class="sh">shared dialog
+      <div style="box-shadow:0 30px 90px rgba(0,0,0,.6);border:1px solid var(--ln);border-radius:18px;padding:14px;margin-top:8px;background:var(--bg)">min(880px,94vw) · 88vh · radius 18
+        <div style="color:var(--faint);font-size:11px;margin-top:6px">backdrop rgba(10,10,12,.6) + 2px blur</div></div>
+    </div>
+    <div class="sh">44px targets the baseline
+      <div style="margin-top:8px;display:grid;grid-template-columns:auto auto;gap:8px">
+        <button class="nav" style="padding:12px">Today</button><button style="height:44px;min-width:44px;border-radius:999px;border:1px solid var(--ln)">44</button>
+      </div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

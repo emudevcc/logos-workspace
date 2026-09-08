@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Preview · Spacing</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .swatch-tip{color:var(--faint);font-size:11px;font-family:var(--font-mono)}
+</style>
+</head>
+<body>
+<div class="pv-top"><a class="pvback" href="index.html">← previews</a>
+  <h1>Spacing &amp; rhythm</h1><span class="lbl">evidence-derived ladder</span></div>
+<p class="pv-sub">Compact-desktop kiosk rhythm with air on the actionable block. Full scale lives in
+tokens.css; semantic gaps map each value to where it is used in a component.</p>
+
+<section class="block">
+  <h2 class="pv-sec">Gap ladder (px)</h2>
+  <div class="sp-row"><span class="sp-tag">--sp-6</span><div class="sp-bar" style="width:6px"></div><span class="sp-sz">6 · icon↔label</span></div>
+  <div class="sp-row"><span class="sp-tag">--sp-9</span><div class="sp-bar" style="width:9px"></div><span class="sp-sz">9 · button groups / bubbles / list dividers</span></div>
+  <div class="sp-row"><span class="sp-tag">--sp-13</span><div class="sp-bar" style="width:13px"></div><span class="sp-sz">13 · badge ↔ title row</span></div>
+  <div class="sp-row"><span class="sp-tag">--sp-18</span><div class="sp-bar" style="width:18px"></div><span class="sp-sz">18 · grid gutter · dialog body stack</span></div>
+  <div class="sp-row"><span class="sp-tag">--sp-24</span><div class="sp-bar" style="width:24px"></div><span class="sp-sz">24 · KPI cluster</span></div>
+  <div class="sp-row"><span class="sp-tag">52px</span><div class="sp-bar" style="width:26px"></div><span class="sp-sz">52 · main bottom breathing room</span></div>
+</section>
+
+<section class="block">
+  <h2 class="pv-sec">Working paddings</h2>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">
+    <div style="background:var(--srf);border:1px solid var(--ln);border-radius:14px;padding:6px">
+      <div style="background:var(--bg);border:1px dashed var(--ln);border-radius:10px"><span class="sp-sz">card pad 18</span></div></div>
+    <div style="background:var(--srf);border:1px solid var(--ln);border-radius:14px;padding:10px">
+      <div style="background:var(--up);border-radius:8px;color:var(--mut)">button pad 9×16</div></div>
+    <div style="background:var(--srf);border:1px solid var(--ln);border-radius:14px;padding:5px">
+      <div style="background:var(--bg);border:1px dashed var(--ln);border-radius:8px">pill chip pad 4×12</div></div>
+  </div>
+</section>
+
+<section class="block">
+  <h2 class="pv-sec">Card rhythm — accent bar · badge · title · kicker · Open cue</h2>
+  <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+    <article class="card" style="width:300px;--mc:#0a84ff">
+      <div class="book-row"><span class="badge svgbox"><svg width="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span>
+        <div><h2>Your next step</h2><div class="card-kicker">next step</div></div></div>
+      <div class="card-sum"><p>Start with the next due review.</p></div>
+      <span class="open-cue">Open&nbsp;<svg width="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </article>
+    <div style="color:var(--mut);font-size:12.5px;max-width:230px;line-height:1.6">Top accent <span class="mono" style="color:var(--faint)">border-top:3px var(--mc)</span>, radius 14. Book-row gap 13 before title; summary flexes; Open cue hangs 12px under the action area.</div>
+  </div>
+</section>
+</body>
+</html>

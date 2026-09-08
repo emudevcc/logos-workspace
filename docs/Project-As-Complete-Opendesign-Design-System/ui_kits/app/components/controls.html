@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-theme="cockpit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Component · in-modal controls</title>
+<link rel="stylesheet" href="../../../colors_and_type.css" />
+<link rel="stylesheet" href="../../../tokens.css" />
+<link rel="stylesheet" href="../cockpit.css" />
+<style>
+  body{padding:24px max(16px,(100vw-1060px)/2)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+  @media(max-width:860px){.cols{grid-template-columns:1fr}}
+  .cap{font-size:15px;color:var(--faint);letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px;font-weight:600}
+  .cardface{cursor:default}
+  code{color:var(--acc-t)}
+</style>
+</head>
+<body>
+<div class="cols">
+
+  <section>
+    <h2 class="cap">Flashcard — face + grading 1–4</h2>
+    <div class="cardface serif" id="fc"><b>novel</b><div class="phon" style="margin-top:10px">/ˈnɒv.əl/</div></div>
+    <div class="btn-row" style="justify-content:center;margin-top:14px">
+      <button class="btn solid" data-flip>Flip</button></div>
+    <div class="btn-row center" style="margin-top:8px" id="band" hidden>
+      <button class="btn soft" data-grade="1">Again</button><button class="btn soft" data-grade="2">Hard</button>
+      <button class="btn soft" data-grade="3">Good</button><button class="btn solid" data-grade="4">Easy</button></div>
+    <p class="meta-line" id="gH" style="margin-top:8px;text-align:center">Press 1–4 or tap.</p>
+  </section>
+
+  <section>
+    <h2 class="cap">Segmented tabs (macOS-style)</h2>
+    <div class="tabs" role="tablist" aria-label="Register" style="flex-wrap:nowrap">
+      <button class="tab is-active" role="tab">Technical</button>
+      <button class="tab" role="tab">Executive</button>
+      <button class="tab" role="tab">Polite</button>
+      <button class="tab" role="tab">Hedged</button>
+      <button class="tab" role="tab">Informal</button>
+    </div>
+    <textarea class="ta serif" rows="3" placeholder="Five regbands read one idea differently."></textarea>
+    <p class="meta-line" style="margin-top:10px">Tab underline 2px in <code>--mc</code>; active text stays white on <code>--srf</code>.</p>
+  </section>
+
+  <section>
+    <h2 class="cap">Phrases — chips &amp; countdown</h2>
+    <div class="btn-row">
+      <span class="phase-pill ok">14 new</span><span class="phase-pill rev">6 review</span>
+    </div>
+    <div class="count-num" style="margin-top:14px">0:00</div>
+    <p class="meta-line">PREP 90-seconds · tabular mono numerals.</p>
+  </section>
+
+  <section>
+    <h2 class="cap">Speech metrics — tabular mono numerals</h2>
+    <div class="metic">
+      <div><b class="mono">142</b><span>WPM</span></div>
+      <div><b class="mono">2</b><span>fillers / min</span></div>
+      <div><b class="mono">0.9</b><span>cadence</span></div>
+    </div>
+    <p class="meta-line" style="margin-top:10px">Tabular mono numerals sized for a 1080p kiosk.</p>
+  </section>
+</div>
+
+<script type="module">
+  const fc=document.getElementById("fc"), band=document.getElementById("band"), gH=document.getElementById("gH");
+  let flip=false;
+  function setFace(word){
+    fc.innerHTML=flip ? '<i>a new, original or unusual idea</i> — “a novel approach”' : `<b>${word}</b><div class="phon" style="margin-top:10px">/ˈnɒv.əl/</div>`;
+  }
+  document.querySelector("[data-flip]").addEventListener("click", ()=>{ if(band.hidden){band.hidden=false;} flip=!flip; setFace(flip?"back":"novel"); gH.textContent="Press 1–4, or tap a grade."; });
+  // keyboard 1-4
+  document.addEventListener("keydown", (e)=>{
+    if(band.hidden) return;
+    const g=e.key;
+    if(["1","2","3","4"].includes(g)){ grade(g); }
+  });
+  function grade(g){ const btn=band.querySelector(`[data-grade="${g}"]`); btn.blur(); band.hidden=true; gH.textContent="Graded "+(g==="4"?"Easy ✓ (next card): review due next.":"— advancing to next card."); }
+  band.addEventListener("click", (e)=>{ const b=e.target.closest("[data-grade]"); if(b) grade(b.dataset.grade); });
+</script>
+</body>
+</html>
