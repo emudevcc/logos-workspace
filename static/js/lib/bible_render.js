@@ -194,5 +194,5 @@ function listSection(title, items) {
   for (const item of items) {
     list.append(h("li", { text: item }));
   }
-  return h("div", null, h("h5", { class: "bible-subtitle", text: title }), list);
+  return h("div", {}, h("h5", { class: "bible-subtitle", text: title }), list);
 }

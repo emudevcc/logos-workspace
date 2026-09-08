@@ -9,7 +9,7 @@
  */
 export function h(tag, props = {}, ...children) {
   const node = document.createElement(tag);
-  for (const [key, value] of Object.entries(props)) {
+  for (const [key, value] of Object.entries(props ?? {})) {
     if (key === "class") {
       node.className = value;
     } else if (key === "text") {
