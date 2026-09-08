@@ -346,7 +346,13 @@ async def test_provider_prefix_fallback_resolves_niv11() -> None:
         if path.endswith("/bibles"):
             language = (request.url.params.get("language") or "spa").lower()
             data = (
-                [{"id": "bible-niv11", "abbreviation": "NIV11", "name": "New International Version"}]
+                [
+                    {
+                        "id": "bible-niv11",
+                        "abbreviation": "NIV11",
+                        "name": "New International Version",
+                    }
+                ]
                 if language == "eng"
                 else []
             )

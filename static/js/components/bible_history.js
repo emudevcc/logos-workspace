@@ -11,7 +11,7 @@ export function init(slot) {
   const listEl = h("ul", { class: "bible-history-list" });
   const detailEl = h("div", { class: "bible-out" });
   const statusEl = h("p", { class: "srs-status", "aria-live": "polite" });
-  const backBtn = h("button", { type: "button", class: "chip", text: "← Voltar à lista" });
+  const backBtn = h("button", { type: "button", class: "chip", text: "← Volver a la lista" });
   backBtn.addEventListener("click", showList);
 
   async function loadList() {
@@ -20,14 +20,14 @@ export function init(slot) {
     try {
       const summaries = await apiGet("/api/bible/studies");
       if (!summaries.length) {
-        listEl.append(h("p", { class: "muted", text: "Nenhum estudo salvo ainda." }));
+        listEl.append(h("p", { class: "muted", text: "Todavía no hay estudios guardados." }));
         return;
       }
       for (const summary of summaries) {
         listEl.append(buildRow(summary));
       }
     } catch (error) {
-      statusEl.textContent = `Não consegui carregar o histórico: ${error.message}`;
+      statusEl.textContent = `No pude cargar el historial: ${error.message}`;
     }
   }
 
@@ -41,7 +41,7 @@ export function init(slot) {
     const deleteBtn = h("button", {
       type: "button",
       class: "chip",
-      text: "Apagar",
+      text: "Borrar",
       onclick: async () => {
         try {
           await apiDelete(`/api/bible/studies/${summary.id}`);
@@ -65,7 +65,7 @@ export function init(slot) {
   }
 
   async function openStudy(id) {
-    statusEl.textContent = "Carregando…";
+    statusEl.textContent = "Cargando…";
     try {
       const record = await apiGet(`/api/bible/studies/${id}`);
       clear(detailEl);

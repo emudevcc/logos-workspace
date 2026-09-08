@@ -155,14 +155,14 @@ class BibleTextProvider:
             f"{abbreviation} ({name})" for _id, abbreviation, name, _language in catalogs[:8]
         )
         raise BibleTranslationUnavailableError(
-            f"A tradução '{label}' não está disponível nos catálogos "
-            f"({', '.join(self._languages)}) da API.Bible. Exemplos disponíveis: {sample}."
+            f"La traducción '{label}' no está disponible en los catálogos "
+            f"({', '.join(self._languages)}) de API.Bible. Ejemplos disponibles: {sample}."
         )
 
     async def fetch_text(self, ref: PassageRef, translation: str = "") -> str:
         """Return the plain text for a parsed pericope (cached when possible)."""
         if not self.enabled:
-            raise BibleNotConfiguredError("Bible API key is not configured")
+            raise BibleNotConfiguredError("La clave de la API de Bible no está configurada")
         bible_id = await self.resolve_bible_id(translation or self._default_translation)
         passage_id = passage_id_for(ref)
 

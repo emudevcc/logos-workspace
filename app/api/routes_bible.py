@@ -90,7 +90,7 @@ async def get_study(study_id: int, request: Request) -> StudyRecord:
     service: BibleStudyService = request.app.state.bible_studies
     record = await service.get_study(study_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="Estudo não encontrado")
+        raise HTTPException(status_code=404, detail="Estudio no encontrado")
     return record
 
 
@@ -99,7 +99,7 @@ async def delete_study(study_id: int, request: Request) -> None:
     service: BibleStudyService = request.app.state.bible_studies
     deleted = await service.delete_study(study_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Estudo não encontrado")
+        raise HTTPException(status_code=404, detail="Estudio no encontrado")
 
 
 @router.get("/translations", response_model=list[TranslationInfo])
@@ -107,7 +107,10 @@ async def translations(request: Request) -> list[TranslationInfo]:
     """Discovered translations across the spa/eng/por catalogs (for the UI)."""
     provider: BibleTextProvider = request.app.state.bible_provider
     if not provider.enabled:
-        raise HTTPException(status_code=503, detail="Bible API key is not configured")
+        raise HTTPException(
+            status_code=503,
+            detail="La clave de la API de Bible no está configurada",
+        )
     try:
         rows = await provider.available_translations()
     except BibleUpstreamError as exc:

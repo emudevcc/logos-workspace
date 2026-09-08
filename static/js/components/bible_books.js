@@ -23,8 +23,8 @@ export function init(slot) {
       NT: books.filter((book) => book.testament === "NT"),
     };
     for (const [testament, label] of [
-      ["AT", "Antigo Testamento (39)"],
-      ["NT", "Novo Testamento (27)"],
+      ["AT", "Antiguo Testamento (39)"],
+      ["NT", "Nuevo Testamento (27)"],
     ]) {
       const group = h("div", { class: "bible-book-group" });
       group.append(h("h5", { class: "bible-subtitle", text: label }));

@@ -34,10 +34,10 @@ export function init(slot) {
   const input = h("input", {
     class: "study-input",
     type: "text",
-    placeholder: "Ex.: Romanos 8:31-39 (ou Rm 8:31-39, Juan 3:16…)",
+    placeholder: "Ej.: Romanos 8:31-39 (o Rm 8:31-39, Juan 3:16…)",
     autocomplete: "off",
   });
-  const runBtn = h("button", { type: "button", class: "chip", text: "Estudar passagem" });
+  const runBtn = h("button", { type: "button", class: "chip", text: "Estudiar pasaje" });
   const statusEl = h("p", { class: "srs-status", "aria-live": "polite" });
   const out = h("div", { class: "bible-out" });
   const langBar = h("div", { class: "segmented study-lang", role: "group", "aria-label": "Language of the Bible text" });
@@ -92,7 +92,7 @@ export function init(slot) {
   }
 
   function renderVersion() {
-    translationEl.textContent = `Texto da passagem: ${versionLabel()} · explicação em espanhol.`;
+    translationEl.textContent = `Texto del pasaje: ${versionLabel()} · explicación en español.`;
   }
 
   async function loadPrefs() {
@@ -117,7 +117,7 @@ export function init(slot) {
     if (!reference || busy) return;
     busy = true;
     runBtn.disabled = true;
-    runBtn.textContent = "Estudando…";
+    runBtn.textContent = "Estudiando…";
     clear(out);
     statusEl.textContent = "";
     try {
@@ -126,13 +126,13 @@ export function init(slot) {
         translation: versionLabel(),
       });
       renderStudy(out, record);
-      statusEl.textContent = `Estudo salvo no histórico (nº ${record.id}).`;
+      statusEl.textContent = `Estudio guardado en el historial (nº ${record.id}).`;
     } catch (error) {
-      statusEl.textContent = `Não consegui estudar a passagem: ${error.message}`;
+      statusEl.textContent = `No pude estudiar el pasaje: ${error.message}`;
     } finally {
       busy = false;
       runBtn.disabled = false;
-      runBtn.textContent = "Estudar passagem";
+      runBtn.textContent = "Estudiar pasaje";
     }
   }
 
@@ -153,7 +153,7 @@ export function init(slot) {
   slot.append(
     h(
       "p",
-      { text: "Escolha uma passagem de 5–15 versículos para um estudo exegético profundo." },
+      { text: "Elige un pasaje de 5–15 versículos para un estudio exegético profundo." },
     ),
     langBar,
     translationEl,
@@ -164,9 +164,9 @@ export function init(slot) {
     h("div", { class: "chips" }, ...chips),
     h("p", {
       class: "bible-note",
-      text: "Textos via API.Bible (NTV es · NIV en · NVT pt — domínio/licença da sua conta). "
-        + "Estudos seguem o método histórico-gramatical com salvaguardas evangélicas "
-        + "(sola Scriptura, sem alegorização especulativa).",
+      text: "Textos vía API.Bible (NTV es · NIV en · NVT pt — dominio/licencia de tu cuenta). "
+        + "Los estudios siguen el método histórico-gramatical con salvaguardas "
+        + "evangélicas (sola Scriptura, sin alegorización especulativa).",
     }),
   );
   loadPrefs();

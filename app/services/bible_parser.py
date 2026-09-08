@@ -53,7 +53,7 @@ def book_by_code(code: str) -> Book | None:
 def parse_reference(raw: str, translation: str = "") -> PassageRef:
     """Parse a passage string into a canonical, bounded pericope reference."""
     if not raw or not raw.strip():
-        raise BibleReferenceError("Informe uma referência (ex.: Romanos 8:31-39).")
+        raise BibleReferenceError("Indica una referencia (ej.: Romanos 8:31-39).")
 
     normalized = _norm(raw.strip())
     matched: list[tuple[int, str, str]] = []  # (alias length, code, remainder)
@@ -72,8 +72,8 @@ def parse_reference(raw: str, translation: str = "") -> PassageRef:
 
     if not matched:
         raise BibleReferenceError(
-            f"Não reconheci o livro em '{raw.strip()}'. "
-            "Use um nome ou abreviatura conhecida (ex.: Rm, Gênesis, 1Co)."
+            f"No reconocí el libro en '{raw.strip()}'. "
+            "Usa un nombre o abreviatura conocida (ej.: Rm, Génesis, 1Co)."
         )
 
     # Prefer the longest alias; resolve equal-length ambiguity via priority.
@@ -90,14 +90,14 @@ def parse_reference(raw: str, translation: str = "") -> PassageRef:
 
     book = book_by_code(chosen[1])
     if book is None:
-        raise BibleReferenceError("Livro não encontrado no cânon de 66 livros.")
+        raise BibleReferenceError("Libro no encontrado en el canon de 66 libros.")
 
     position = chosen[2]
     match = re.fullmatch(r"(\d{1,3})(?::(\d{1,3})(?:-(\d{1,3}))?)?", position)
     if match is None:
         raise BibleReferenceError(
-            f"Não entendi a passagem '{raw.strip()}'. Use o formato "
-            "'Livro capítulo:versículo' (ex.: Romanos 8:31-39) ou capítulo inteiro."
+            f"No entendí el pasaje '{raw.strip()}'. Usa el formato "
+            "'Libro capítulo:versículo' (ej.: Romanos 8:31-39) o capítulo entero."
         )
 
     chapter = int(match.group(1))
@@ -108,7 +108,7 @@ def parse_reference(raw: str, translation: str = "") -> PassageRef:
     if start_verse is not None and start_verse < 1:
         raise BibleReferenceError("Versículo inicial inválido.")
     if start_verse is not None and end_verse is not None and end_verse < start_verse:
-        raise BibleReferenceError("O versículo final é menor que o inicial.")
+        raise BibleReferenceError("El versículo final es menor que el inicial.")
 
     display = f"{book.name_pt} {chapter}"
     if start_verse is not None:
