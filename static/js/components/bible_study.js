@@ -9,15 +9,6 @@ import { apiGet, apiPost } from "../lib/api.js";
 import { renderStudy } from "../lib/bible_render.js";
 import { clear, h } from "../lib/dom.js";
 
-const EXAMPLES = [
-  "Romanos 8:31-39",
-  "João 3:16",
-  "Isaías 53",
-  "Salmos 23",
-  "1 Coríntios 13:4-7",
-  "Mateus 5:1-12",
-];
-
 const LANG_OPTIONS = [
   { key: "es", label: "🇪🇸 Español" },
   { key: "en", label: "🇺🇸 English" },
@@ -30,6 +21,14 @@ const FALLBACK_PREFS = { es: "NTV", en: "NIV", pt: "NVT" };
 const I18N = {
   es: {
     intro: "Elige un pasaje de 5–15 versículos para un estudio exegético profundo.",
+    examples: [
+      "Romanos 8:31-39",
+      "Juan 3:16",
+      "Isaías 53",
+      "Salmos 23",
+      "1 Corintios 13:4-7",
+      "Mateo 5:1-12",
+    ],
     placeholder: "Ej.: Romanos 8:31-39 (o Rm 8:31-39, Juan 3:16…)",
     run: "Estudiar pasaje",
     busy: "Estudiando…",
@@ -45,6 +44,14 @@ const I18N = {
   },
   en: {
     intro: "Choose a 5–15 verse passage for an in-depth exegetical study.",
+    examples: [
+      "Romans 8:31-39",
+      "John 3:16",
+      "Isaiah 53",
+      "Psalms 23",
+      "1 Corinthians 13:4-7",
+      "Matthew 5:1-12",
+    ],
     placeholder: "E.g. Romans 8:31-39 (or Rm 8:31-39, Juan 3:16…)",
     run: "Study passage",
     busy: "Studying…",
@@ -60,6 +67,14 @@ const I18N = {
   },
   pt: {
     intro: "Escolha uma passagem de 5–15 versículos para um estudo exegético profundo.",
+    examples: [
+      "Romanos 8:31-39",
+      "João 3:16",
+      "Isaías 53",
+      "Salmos 23",
+      "1 Coríntios 13:4-7",
+      "Mateus 5:1-12",
+    ],
     placeholder: "Ex.: Romanos 8:31-39 (ou Rm 8:31-39, Juan 3:16…)",
     run: "Estudar passagem",
     busy: "Estudando…",
@@ -91,6 +106,7 @@ export function init(slot) {
   });
   const versionEl = h("p", { class: "bible-note study-version" });
   const noteEl = h("p", { class: "bible-note" });
+  const chipsEl = h("div", { class: "chips" });
 
   let busy = false;
   let language = readLang();
@@ -130,6 +146,25 @@ export function init(slot) {
     runBtn.textContent = strings.run;
     versionEl.textContent = `${strings.versionPrefix}: ${versionLabel()} · ${strings.versionSuffix}`;
     noteEl.textContent = strings.note;
+    renderChips(strings.examples || []);
+  }
+
+  function renderChips(examples) {
+    clear(chipsEl);
+    for (const example of examples) {
+      chipsEl.append(
+        h("button", {
+          type: "button",
+          class: "chip",
+          text: example,
+          title: example,
+          onclick: () => {
+            input.value = example;
+            run();
+          },
+        }),
+      );
+    }
   }
 
   function renderLangBar() {
@@ -207,21 +242,8 @@ export function init(slot) {
     }
   }
 
-  const chips = EXAMPLES.map((example) =>
-    h("button", {
-      type: "button",
-      class: "chip",
-      text: example,
-      title: example,
-      onclick: () => {
-        input.value = example;
-        run();
-      },
-    }),
-  );
-
   slot.append(introEl, langBar, versionEl, input, h("div", { class: "chips" }, runBtn), statusEl, out);
-  slot.append(h("div", { class: "chips" }, ...chips), noteEl);
+  slot.append(chipsEl, noteEl);
 
   renderLangBar();
   applyChrome();
