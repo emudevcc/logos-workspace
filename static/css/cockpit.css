@@ -957,3 +957,5 @@ button.primary:focus-visible,
 .bible-book-list { list-style: none; padding: 0; display: grid; gap: 0.15rem; margin: 0; }
 .bible-book-row { padding: 0.1rem 0; }
 .bible-book-name { font-weight: 600; }
+.study-lang { margin-bottom: 0.3rem; }
+.study-version { margin-top: 0.15rem; }

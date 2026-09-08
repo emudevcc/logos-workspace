@@ -337,3 +337,26 @@ def test_passage_with_explicit_translation(
         get_settings.cache_clear()
         os.environ.pop("BIBLE_API_KEY", None)
 
+
+async def test_provider_prefix_fallback_resolves_niv11() -> None:
+    """API.Bible catalogues the NIV as 'NIV11'; label 'NIV' must still resolve."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path.endswith("/bibles"):
+            language = (request.url.params.get("language") or "spa").lower()
+            data = (
+                [{"id": "bible-niv11", "abbreviation": "NIV11", "name": "New International Version"}]
+                if language == "eng"
+                else []
+            )
+            return httpx.Response(200, json={"data": data})
+        return httpx.Response(404, json={"message": "not found"})
+
+    provider = BibleTextProvider(
+        make_mock_http(handler),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    assert await provider.resolve_bible_id("NIV") == "bible-niv11"

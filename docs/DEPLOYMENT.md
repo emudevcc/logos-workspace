@@ -43,7 +43,9 @@ at startup. Copy `deploy/env.example` and fill in the keys.
 | `WHISPER_MAX_RETRIES` | `2` | retries on 5xx/transport |
 | `BIBLE_API_KEY` | *(empty)* | API.Bible key; enables the Bíblia cockpit |
 | `BIBLE_API_BASE_URL` | `https://api.scripture.api.bible/v1` | API.Bible base URL |
-| `BIBLE_DEFAULT_TRANSLATION` | `RVR09` | Spanish translation label (RVR09 on API.Bible; RVR60 needs another source) |
+| `BIBLE_DEFAULT_TRANSLATION` | `NTV` | Spanish text default (Nueva Traducción Viviente) |
+| `BIBLE_ENGLISH_TRANSLATION` | `NIV` | English text default (New International Version) |
+| `BIBLE_PORTUGUESE_TRANSLATION` | `NVT` | Portuguese text default (Nova Versão Transformadora) |
 | `BIBLE_API_CACHE_TTL_SECONDS` | `604800` | passage cache TTL (7 days) |
 | `RATE_LIMIT_PER_MINUTE` | `30` | per-IP limit on LLM/STT endpoints |
 | `CONTENT_CACHE_TTL_SECONDS` | `600` | news/podcast cache TTL |

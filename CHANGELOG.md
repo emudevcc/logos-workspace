@@ -2,6 +2,17 @@
 
 All notable changes to Logos Workspace are documented in this file.
 
+## 2026-09-08 — Bíblia em três idiomas (ES · EN · PT)
+
+- Bíblia cockpit passage text is now selectable between **Español / English /
+  Português** (defaults **NTV · NIV · NVT**, your API.Bible versions). Study
+  output stays in Spanish.
+- API.Bible discovery is multilingual (spa/eng/por catalogs); labels are
+  configurable via `BIBLE_DEFAULT_TRANSLATION`, `BIBLE_ENGLISH_TRANSLATION`,
+  `BIBLE_PORTUGUESE_TRANSLATION`.
+- New endpoints: `GET /api/bible/prefs` (selector defaults) and
+  `GET /api/bible/translations` (discovered versions).
+
 ## 2026-09-08 — Logos Workspace 1.0 (M1–M4)
 
 ### Added

@@ -133,15 +133,30 @@ class BibleTextProvider:
     async def resolve_bible_id(self, translation: str) -> str:
         label = (translation or "").strip() or self._default_translation
         wanted = _key(label)
+        catalogs: list[CatalogEntry] = []
         for language in self._languages:
-            catalog = await self._catalog.get(language, self._loader(language))
-            for bible_id, abbreviation, name, _entry_language in catalog:
-                if _key(abbreviation) == wanted or _key(name) == wanted:
-                    return bible_id
+            catalogs.extend(await self._catalog.get(language, self._loader(language)))
+
+        for bible_id, abbreviation, name, _language in catalogs:
+            if _key(abbreviation) == wanted or _key(name) == wanted:
+                return bible_id
+
+        # Prefix fallback: API.Bible sometimes versions abbreviations
+        # (e.g. 'NIV' catalogued as 'NIV11'), so a label may match a prefix.
+        prefix_matches = {
+            bible_id
+            for bible_id, abbreviation, name, _language in catalogs
+            if wanted and (_key(abbreviation).startswith(wanted) or _key(name).startswith(wanted))
+        }
+        if len(prefix_matches) == 1:
+            return prefix_matches.pop()
+
+        sample = ", ".join(
+            f"{abbreviation} ({name})" for _id, abbreviation, name, _language in catalogs[:8]
+        )
         raise BibleTranslationUnavailableError(
             f"A tradução '{label}' não está disponível nos catálogos "
-            f"({', '.join(self._languages)}) da API.Bible. Use uma abreviatura "
-            "como NTV (es), NIV (en) ou NVT (pt)."
+            f"({', '.join(self._languages)}) da API.Bible. Exemplos disponíveis: {sample}."
         )
 
     async def fetch_text(self, ref: PassageRef, translation: str = "") -> str:

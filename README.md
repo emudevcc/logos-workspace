@@ -23,9 +23,9 @@ are scoped per cockpit (persisted selection, `?cockpit=en|pt|bible`).
 | **Bíblia** | Pericope exegesis (5–15 verses): six-section study reports — literary framework, historical-grammatical context, lexical exegesis with consensus notes, redemptive-theological context, core principle, practical application — grounded on deterministic 66-book profiles, with guardrails (literal-grammatical priority, no speculative allegorization, evangelical orthodoxy, no uncited claims). Saved studies + 66-book registry browser. |
 
 Bible text is fetched from **API.Bible** (api.scripture.api.bible) and cached in
-SQLite. The Spanish catalog ships **Reina-Valera 1909** (public domain) as the
-default translation; **RVR60 is not in the API.Bible Spanish catalog** — set
-`BIBLE_DEFAULT_TRANSLATION` when another source is integrated.
+SQLite. The passage text can be read in **Español · English · Português** (defaults:
+NTV, NIV, NVT — per-language labels are configurable). Study output stays in
+Spanish, the reader's native base. RVR60 is not in the API.Bible Spanish catalog.
 
 ## Documentation
 
@@ -122,7 +122,9 @@ Create a `.env` (gitignored) next to the app. Values are read once at startup.
 | `WHISPER_BASE_URL` | `http://localhost:8080` | whisper.cpp server base URL. |
 | `BIBLE_API_KEY` | *(empty)* | API.Bible key; enables the Bíblia cockpit text. |
 | `BIBLE_API_BASE_URL` | `https://api.scripture.api.bible/v1` | API.Bible base URL. |
-| `BIBLE_DEFAULT_TRANSLATION` | `RVR09` | Spanish translation label (RVR09 on API.Bible; RVR60 needs another source). |
+| `BIBLE_DEFAULT_TRANSLATION` | `NTV` | Spanish text default (Nueva Traducción Viviente). |
+| `BIBLE_ENGLISH_TRANSLATION` | `NIV` | English text default (New International Version). |
+| `BIBLE_PORTUGUESE_TRANSLATION` | `NVT` | Portuguese text default (Nova Versão Transformadora). |
 | `BIBLE_API_CACHE_TTL_SECONDS` | `604800` | Passage cache TTL (7 days). |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Per-IP rate limit on LLM/Bible/STT endpoints. |
 | `HOST` / `PORT` | `127.0.0.1` / `8000` | Bind address/port. |

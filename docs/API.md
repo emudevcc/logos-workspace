@@ -299,6 +299,10 @@ Immersion-first PT-BR content with Spanish scaffolding (`nota_es`).
 Text comes from **API.Bible** (`api.scripture.api.bible/v1`); passages are
 cached in SQLite (`bible_cache`) for `BIBLE_API_CACHE_TTL_SECONDS`.
 
+- `GET /api/bible/prefs` — default translation labels for the es/en/pt UI
+  selector: `{"es":"NTV","en":"NIV","pt":"NVT"}`
+- `GET /api/bible/translations` — discovered translations across the
+  spa/eng/por catalogs: `[{"id":"…","abbreviation":"NIV","name":"…","language":"eng"}]`
 - `GET /api/bible/books` — the 66-book registry:
   `{"code":"ROM","name_pt":"Romanos","testament":"NT","genre":"Epístola Paulina",
     "author":"Paulo","date":"≈ 57 d.C.","occasion":"…"}`
@@ -330,8 +334,9 @@ Study report shape (spec §2; echo fields authoritative):
  "guardrail_notes":"…"}
 ```
 
-Notes: the API.Bible Spanish catalog offers **RVR09** (public domain) — the
-default; **RVR60 is not available** there (`BIBLE_DEFAULT_TRANSLATION` overrides
-when another source is integrated). Study generation follows the agreed
-guardrails (literal-grammatical priority, evangelical orthodoxy, no uncited
-claims — each lexical term carries a `consensus_note`).
+Notes: passage text is selectable in **Español · English · Português**
+(defaults NTV / NIV / NVT, overridable via `BIBLE_DEFAULT_TRANSLATION`,
+`BIBLE_ENGLISH_TRANSLATION`, `BIBLE_PORTUGUESE_TRANSLATION`); the study output
+stays in Spanish. Study generation follows the agreed guardrails
+(literal-grammatical priority, evangelical orthodoxy, no uncited claims — each
+lexical term carries a `consensus_note`).
