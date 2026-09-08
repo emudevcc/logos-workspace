@@ -12,6 +12,9 @@ All notable changes to Logos Workspace are documented in this file.
   `BIBLE_PORTUGUESE_TRANSLATION`.
 - New endpoints: `GET /api/bible/prefs` (selector defaults) and
   `GET /api/bible/translations` (discovered versions).
+- Flag language selector (🇪🇸 · 🇺🇸 · 🇧🇷) drives the whole study experience:
+  instructions and the six-section report follow the chosen language
+  (Spanish default); switching re-generates the current study.
 
 ## 2026-09-08 — Logos Workspace 1.0 (M1–M4)
 

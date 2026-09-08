@@ -1,7 +1,7 @@
 // Histórico de estudos (Bíblia cockpit) — saved exegesis reports.
 
 import { apiGet } from "../lib/api.js";
-import { renderStudy } from "../lib/bible_render.js";
+import { renderStudy, translationLanguage } from "../lib/bible_render.js";
 import { clear, h } from "../lib/dom.js";
 
 /**
@@ -12,6 +12,7 @@ export function init(slot) {
   const detailEl = h("div", { class: "bible-out" });
   const statusEl = h("p", { class: "srs-status", "aria-live": "polite" });
   const backBtn = h("button", { type: "button", class: "chip", text: "← Volver a la lista" });
+  let prefs = {};
   backBtn.addEventListener("click", showList);
 
   async function loadList() {
@@ -64,12 +65,21 @@ export function init(slot) {
     );
   }
 
+  async function loadPrefs() {
+    try {
+      prefs = await apiGet("/api/bible/prefs");
+    } catch {
+      /* keep default mapping */
+    }
+  }
+
   async function openStudy(id) {
     statusEl.textContent = "Cargando…";
     try {
       const record = await apiGet(`/api/bible/studies/${id}`);
       clear(detailEl);
-      renderStudy(detailEl, record);
+      const lang = translationLanguage(prefs, record.translation);
+      renderStudy(detailEl, record, lang);
       listEl.hidden = true;
       backBtn.hidden = false;
       statusEl.textContent = "";
@@ -87,6 +97,7 @@ export function init(slot) {
 
   backBtn.hidden = true;
   slot.append(listEl, backBtn, detailEl, statusEl);
+  loadPrefs();
   loadList();
 }
 

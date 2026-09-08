@@ -337,6 +337,6 @@ Study report shape (spec §2; echo fields authoritative):
 Notes: passage text is selectable in **Español · English · Português**
 (defaults NTV / NIV / NVT, overridable via `BIBLE_DEFAULT_TRANSLATION`,
 `BIBLE_ENGLISH_TRANSLATION`, `BIBLE_PORTUGUESE_TRANSLATION`); the study output
-stays in Spanish. Study generation follows the agreed guardrails
+follows the selected language (`language` es/en/pt, Spanish default). Study generation follows the agreed guardrails
 (literal-grammatical priority, evangelical orthodoxy, no uncited claims — each
 lexical term carries a `consensus_note`).

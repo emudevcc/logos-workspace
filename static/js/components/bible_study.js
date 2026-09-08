@@ -1,9 +1,9 @@
 // Estudo Bíblico — pericope exegesis report generator (Bíblia cockpit).
 //
-// Submits a passage reference to /api/bible/study (six-section report, saved
-// server-side) and renders the result. The passage TEXT can be read in
-// Español / English / Português (defaults from /api/bible/prefs — NTV, NIV,
-// NVT), while the study output stays in Spanish, the reader's native base.
+// A flag selector picks the language of the whole study experience
+// (🇪🇸 Español · 🇺🇸 English · 🇧🇷 Português; Spanish default). Switching the
+// language updates the instructions AND re-generates the current study in the
+// new language (the passage text and the six-section report follow along).
 
 import { apiGet, apiPost } from "../lib/api.js";
 import { renderStudy } from "../lib/bible_render.js";
@@ -18,34 +18,88 @@ const EXAMPLES = [
   "Mateus 5:1-12",
 ];
 
-const LANG_KEY = "logos-workspace.bible-lang";
-const LANG_LABELS = [
-  { key: "es", label: "Español" },
-  { key: "en", label: "English" },
-  { key: "pt", label: "Português" },
+const LANG_OPTIONS = [
+  { key: "es", label: "🇪🇸 Español" },
+  { key: "en", label: "🇺🇸 English" },
+  { key: "pt", label: "🇧🇷 Português" },
 ];
 
+const LANG_KEY = "logos-workspace.bible-lang";
 const FALLBACK_PREFS = { es: "NTV", en: "NIV", pt: "NVT" };
+
+const I18N = {
+  es: {
+    intro: "Elige un pasaje de 5–15 versículos para un estudio exegético profundo.",
+    placeholder: "Ej.: Romanos 8:31-39 (o Rm 8:31-39, Juan 3:16…)",
+    run: "Estudiar pasaje",
+    busy: "Estudiando…",
+    saved: (id) => `Estudio guardado en el historial (nº ${id}).`,
+    regenerated: "Se generó de nuevo en el idioma seleccionado.",
+    failed: (message) => `No pude estudiar el pasaje: ${message}`,
+    versionPrefix: "Texto del pasaje",
+    versionSuffix: "explicación en español",
+    note:
+      "Textos vía API.Bible (NTV es · NIV en · NVT pt — dominio/licencia de tu cuenta). "
+      + "Los estudios siguen el método histórico-gramatical con salvaguardas "
+      + "evangélicas (sola Scriptura, sin alegorización especulativa).",
+  },
+  en: {
+    intro: "Choose a 5–15 verse passage for an in-depth exegetical study.",
+    placeholder: "E.g. Romans 8:31-39 (or Rm 8:31-39, Juan 3:16…)",
+    run: "Study passage",
+    busy: "Studying…",
+    saved: (id) => `Study saved to history (#${id}).`,
+    regenerated: "Regenerated in the selected language.",
+    failed: (message) => `Could not study the passage: ${message}`,
+    versionPrefix: "Passage text",
+    versionSuffix: "explanation in English",
+    note:
+      "Texts via API.Bible (NTV es · NIV en · NVT pt — license from your account). "
+      + "Studies follow the historical-grammatical method with evangelical "
+      + "guardrails (sola Scriptura, no speculative allegorization).",
+  },
+  pt: {
+    intro: "Escolha uma passagem de 5–15 versículos para um estudo exegético profundo.",
+    placeholder: "Ex.: Romanos 8:31-39 (ou Rm 8:31-39, Juan 3:16…)",
+    run: "Estudar passagem",
+    busy: "Estudando…",
+    saved: (id) => `Estudo salvo no histórico (nº ${id}).`,
+    regenerated: "Regenerado no idioma selecionado.",
+    failed: (message) => `Não consegui estudar a passagem: ${message}`,
+    versionPrefix: "Texto da passagem",
+    versionSuffix: "explicação em português",
+    note:
+      "Textos via API.Bible (NTV es · NIV en · NVT pt — domínio/licença da sua conta). "
+      + "Os estudos seguem o método histórico-gramatical com salvaguardas "
+      + "evangélicas (sola Scriptura, sem alegorização especulativa).",
+  },
+};
 
 /**
  * @param {HTMLElement} slot
  */
 export function init(slot) {
-  const input = h("input", {
-    class: "study-input",
-    type: "text",
-    placeholder: "Ej.: Romanos 8:31-39 (o Rm 8:31-39, Juan 3:16…)",
-    autocomplete: "off",
-  });
-  const runBtn = h("button", { type: "button", class: "chip", text: "Estudiar pasaje" });
+  const input = h("input", { class: "study-input", type: "text", autocomplete: "off" });
+  const runBtn = h("button", { type: "button", class: "chip" });
   const statusEl = h("p", { class: "srs-status", "aria-live": "polite" });
   const out = h("div", { class: "bible-out" });
-  const langBar = h("div", { class: "segmented study-lang", role: "group", "aria-label": "Language of the Bible text" });
-  const translationEl = h("p", { class: "bible-note study-version" });
+  const introEl = h("p");
+  const langBar = h("div", {
+    class: "segmented study-lang",
+    role: "group",
+    "aria-label": "Idioma del estudio",
+  });
+  const versionEl = h("p", { class: "bible-note study-version" });
+  const noteEl = h("p", { class: "bible-note" });
 
   let busy = false;
   let language = readLang();
   let prefs = { ...FALLBACK_PREFS };
+  let lastReference = null;
+
+  function t() {
+    return I18N[language] || I18N.es;
+  }
 
   function readLang() {
     try {
@@ -65,15 +119,36 @@ export function init(slot) {
     }
   }
 
+  function versionLabel() {
+    return prefs[language] || FALLBACK_PREFS[language] || "…";
+  }
+
+  function applyChrome() {
+    const strings = t();
+    introEl.textContent = strings.intro;
+    input.placeholder = strings.placeholder;
+    runBtn.textContent = strings.run;
+    versionEl.textContent = `${strings.versionPrefix}: ${versionLabel()} · ${strings.versionSuffix}`;
+    noteEl.textContent = strings.note;
+  }
+
   function renderLangBar() {
     clear(langBar);
-    for (const item of LANG_LABELS) {
+    for (const item of LANG_OPTIONS) {
       const button = h("button", { type: "button", class: "chip", text: item.label });
       button.addEventListener("click", () => {
+        if (item.key === language) return;
         language = item.key;
         persistLang(item.key);
         renderLangBar();
-        renderVersion();
+        applyChrome();
+        // If a study is already displayed, regenerate it in the new language.
+        if (lastReference && !busy) {
+          input.value = lastReference;
+          run(true);
+        } else {
+          statusEl.textContent = "";
+        }
       });
       langBar.append(button);
     }
@@ -82,17 +157,9 @@ export function init(slot) {
 
   function setLangActive() {
     langBar.querySelectorAll(".chip").forEach((button, index) => {
-      const item = LANG_LABELS[index];
+      const item = LANG_OPTIONS[index];
       button.classList.toggle("is-active", Boolean(item && item.key === language));
     });
-  }
-
-  function versionLabel() {
-    return (prefs[language] || FALLBACK_PREFS[language] || "…");
-  }
-
-  function renderVersion() {
-    translationEl.textContent = `Texto del pasaje: ${versionLabel()} · explicación en español.`;
   }
 
   async function loadPrefs() {
@@ -101,7 +168,7 @@ export function init(slot) {
     } catch {
       /* keep fallback labels */
     }
-    renderVersion();
+    applyChrome();
   }
 
   input.addEventListener("keydown", (event) => {
@@ -112,27 +179,31 @@ export function init(slot) {
   });
   runBtn.addEventListener("click", run);
 
-  async function run() {
+  async function run(regenerated = false) {
     const reference = input.value.trim();
     if (!reference || busy) return;
     busy = true;
+    lastReference = reference;
     runBtn.disabled = true;
-    runBtn.textContent = "Estudiando…";
+    runBtn.textContent = t().busy;
     clear(out);
     statusEl.textContent = "";
     try {
       const record = await apiPost("/api/bible/study", {
         reference,
         translation: versionLabel(),
+        language,
       });
-      renderStudy(out, record);
-      statusEl.textContent = `Estudio guardado en el historial (nº ${record.id}).`;
+      renderStudy(out, record, language);
+      statusEl.textContent = regenerated
+        ? `${t().saved(record.id)} ${t().regenerated}`
+        : t().saved(record.id);
     } catch (error) {
-      statusEl.textContent = `No pude estudiar el pasaje: ${error.message}`;
+      statusEl.textContent = t().failed(error.message);
     } finally {
       busy = false;
       runBtn.disabled = false;
-      runBtn.textContent = "Estudiar pasaje";
+      runBtn.textContent = t().run;
     }
   }
 
@@ -149,26 +220,11 @@ export function init(slot) {
     }),
   );
 
+  slot.append(introEl, langBar, versionEl, input, h("div", { class: "chips" }, runBtn), statusEl, out);
+  slot.append(h("div", { class: "chips" }, ...chips), noteEl);
+
   renderLangBar();
-  slot.append(
-    h(
-      "p",
-      { text: "Elige un pasaje de 5–15 versículos para un estudio exegético profundo." },
-    ),
-    langBar,
-    translationEl,
-    input,
-    h("div", { class: "chips" }, runBtn),
-    statusEl,
-    out,
-    h("div", { class: "chips" }, ...chips),
-    h("p", {
-      class: "bible-note",
-      text: "Textos vía API.Bible (NTV es · NIV en · NVT pt — dominio/licencia de tu cuenta). "
-        + "Los estudios siguen el método histórico-gramatical con salvaguardas "
-        + "evangélicas (sola Scriptura, sin alegorización especulativa).",
-    }),
-  );
+  applyChrome();
   loadPrefs();
   input.focus();
 }

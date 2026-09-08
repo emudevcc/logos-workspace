@@ -24,8 +24,9 @@ are scoped per cockpit (persisted selection, `?cockpit=en|pt|bible`).
 
 Bible text is fetched from **API.Bible** (api.scripture.api.bible) and cached in
 SQLite. The passage text can be read in **Español · English · Português** (defaults:
-NTV, NIV, NVT — per-language labels are configurable). Study output stays in
-Spanish, the reader's native base. RVR60 is not in the API.Bible Spanish catalog.
+NTV, NIV, NVT — per-language labels are configurable). The study instructions
+and the six-section report follow the selected flag language
+(Español/English/Português — Spanish by default).
 
 ## Documentation
 
