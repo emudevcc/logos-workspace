@@ -47,3 +47,18 @@ async def test_transaction_rolls_back_on_error(database: Database) -> None:
     row = await cursor.fetchone()
     assert row is not None
     assert row[0] == 0
+
+async def test_decks_table_has_cockpit_column(database: Database) -> None:
+    cursor = await database.connection.execute("PRAGMA table_info(decks)")
+    columns = {row["name"] for row in await cursor.fetchall()}
+    assert "cockpit" in columns
+
+
+async def test_new_deck_defaults_to_english_cockpit(database: Database) -> None:
+    async with database.transaction() as conn:
+        await conn.execute("INSERT INTO decks (slug, name) VALUES ('raw', 'Raw deck')")
+    cursor = await database.connection.execute("SELECT cockpit FROM decks WHERE slug = 'raw'")
+    row = await cursor.fetchone()
+    assert row is not None
+    assert row["cockpit"] == "en"
+

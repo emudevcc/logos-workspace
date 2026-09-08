@@ -1,6 +1,7 @@
 // "Your next step" — surfaces the next action for a learning session.
 
 import { apiGet } from "../lib/api.js";
+import { getActiveCockpit } from "../lib/cockpit.js";
 import { clear, h } from "../lib/dom.js";
 
 /**
@@ -9,7 +10,8 @@ import { clear, h } from "../lib/dom.js";
 export function init(slot) {
   async function load() {
     try {
-      const stats = await apiGet("/api/srs/stats");
+      const cockpit = getActiveCockpit(window.localStorage);
+      const stats = await apiGet(`/api/srs/stats?cockpit=${cockpit}`);
       clear(slot);
       const due = stats.cards_due || 0;
       const done = stats.reviews_today || 0;

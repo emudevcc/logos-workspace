@@ -33,10 +33,17 @@ class SrsService:
     def __init__(self, db: Database) -> None:
         self._db = db
 
-    async def list_decks(self) -> list[DeckOut]:
-        cursor = await self._db.connection.execute(
-            "SELECT id, slug, name, description FROM decks ORDER BY id"
-        )
+    async def list_decks(self, cockpit: str | None = None) -> list[DeckOut]:
+        if cockpit is None:
+            cursor = await self._db.connection.execute(
+                "SELECT id, slug, name, description FROM decks ORDER BY id"
+            )
+        else:
+            cursor = await self._db.connection.execute(
+                "SELECT id, slug, name, description FROM decks "
+                "WHERE cockpit = ? ORDER BY id",
+                (cockpit,),
+            )
         rows = await cursor.fetchall()
         decks: list[DeckOut] = []
         for row in rows:
@@ -145,8 +152,8 @@ class SrsService:
                 due_at=due_at,
             )
 
-    async def add_card(self, request: CardCreateRequest) -> CardOut:
-        deck_id = request.deck_id or await self._default_deck_id()
+    async def add_card(self, request: CardCreateRequest, cockpit: str | None = None) -> CardOut:
+        deck_id = request.deck_id or await self._default_deck_id(cockpit)
         if deck_id is None:
             raise SrsError("No deck available")
 
@@ -184,19 +191,28 @@ class SrsService:
         cards = [_card_out(row) for row in await cursor.fetchall()]
         return SrsExport(decks=decks, cards=cards)
 
-    async def stats(self) -> Stats:
+    async def stats(self, cockpit: str | None = None) -> Stats:
         now_iso = iso_utc(utc_now())
         day_start = iso_utc(datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0))
 
-        total = await self._count("SELECT COUNT(*) AS n FROM cards")
-        new = await self._count("SELECT COUNT(*) AS n FROM cards WHERE repetitions = 0")
+        scope, where, params = self._cockpit_scope(cockpit)
+        cards_from = f"FROM cards c {scope}"
+        reviews_from = f"FROM reviews r JOIN cards c ON c.id = r.card_id {scope}"
+        # " AND " appends the cockpit filter to a WHERE clause; " WHERE " starts
+        # the clause when there is no cockpit filter.
+        cond = f"{where} AND" if where else " WHERE "
+
+        total = await self._count(f"SELECT COUNT(*) AS n {cards_from}{where}", params)
+        new = await self._count(
+            f"SELECT COUNT(*) AS n {cards_from}{cond} c.repetitions = 0", params
+        )
         due = await self._count(
-            "SELECT COUNT(*) AS n FROM cards WHERE repetitions > 0 AND due_at <= ?",
-            (now_iso,),
+            f"SELECT COUNT(*) AS n {cards_from}{cond} c.repetitions > 0 AND c.due_at <= ?",
+            (*params, now_iso),
         )
         reviews_today = await self._count(
-            "SELECT COUNT(*) AS n FROM reviews WHERE reviewed_at >= ?",
-            (day_start,),
+            f"SELECT COUNT(*) AS n {reviews_from}{cond} r.reviewed_at >= ?",
+            (*params, day_start),
         )
 
         return Stats(
@@ -204,7 +220,18 @@ class SrsService:
             cards_new=new,
             cards_total=total,
             reviews_today=reviews_today,
-            streak_days=await self._streak_days(),
+            streak_days=await self._streak_days(cockpit),
+        )
+
+    @staticmethod
+    def _cockpit_scope(cockpit: str | None) -> tuple[str, str, tuple[str, ...]]:
+        """Return (join clause, where clause, params) scoping counts to a cockpit."""
+        if cockpit is None:
+            return "", "", ()
+        return (
+            "JOIN decks d ON d.id = c.deck_id",
+            " WHERE d.cockpit = ?",
+            (cockpit,),
         )
 
     async def _count(self, sql: str, params: tuple[object, ...] = ()) -> int:
@@ -212,10 +239,18 @@ class SrsService:
         row = await cursor.fetchone()
         return int(row["n"]) if row is not None else 0
 
-    async def _streak_days(self) -> int:
-        cursor = await self._db.connection.execute(
-            "SELECT DISTINCT substr(reviewed_at, 1, 10) AS day FROM reviews"
-        )
+    async def _streak_days(self, cockpit: str | None = None) -> int:
+        if cockpit is None:
+            cursor = await self._db.connection.execute(
+                "SELECT DISTINCT substr(reviewed_at, 1, 10) AS day FROM reviews"
+            )
+        else:
+            cursor = await self._db.connection.execute(
+                "SELECT DISTINCT substr(r.reviewed_at, 1, 10) AS day FROM reviews r "
+                "JOIN cards c ON c.id = r.card_id JOIN decks d ON d.id = c.deck_id "
+                "WHERE d.cockpit = ?",
+                (cockpit,),
+            )
         days = {row["day"] for row in await cursor.fetchall()}
 
         today = datetime.now(UTC).date()
@@ -228,8 +263,15 @@ class SrsService:
             today -= timedelta(days=1)
         return streak
 
-    async def _default_deck_id(self) -> int | None:
-        cursor = await self._db.connection.execute("SELECT id FROM decks ORDER BY id LIMIT 1")
+    async def _default_deck_id(self, cockpit: str | None = None) -> int | None:
+        if cockpit is None:
+            cursor = await self._db.connection.execute(
+                "SELECT id FROM decks ORDER BY id LIMIT 1"
+            )
+        else:
+            cursor = await self._db.connection.execute(
+                "SELECT id FROM decks WHERE cockpit = ? ORDER BY id LIMIT 1", (cockpit,)
+            )
         row = await cursor.fetchone()
         return int(row["id"]) if row is not None else None
 

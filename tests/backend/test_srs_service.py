@@ -148,3 +148,38 @@ async def test_export(database: Database) -> None:
     data = await service.export()
     assert len(data.decks) == 1
     assert len(data.cards) == 12
+
+async def test_cockpit_scoping(database: Database) -> None:
+    await seed_default_deck(database)
+    service = SrsService(database)
+    async with database.transaction() as conn:
+        cursor = await conn.execute(
+            "INSERT INTO decks (slug, name, description, cockpit) VALUES (?, ?, ?, ?)",
+            ("pt-falsos-cognatos", "Falsos cognatos ES-PT", "Falsos amigos.", "pt"),
+        )
+        deck_id = cursor.lastrowid
+        await conn.execute(
+            "INSERT INTO cards (deck_id, front, back, due_at) VALUES (?, ?, ?, ?)",
+            (
+                deck_id,
+                "embaraçado",
+                "envergonhado (cognado falso: embarazado)", 
+                iso_utc(utc_now()),
+            ),
+        )
+
+    all_decks = await service.list_decks()
+    assert [d.slug for d in all_decks] == ["workplace", "pt-falsos-cognatos"]
+    assert [d.slug for d in await service.list_decks("en")] == ["workplace"]
+    assert [d.slug for d in await service.list_decks("pt")] == ["pt-falsos-cognatos"]
+
+    assert (await service.stats("en")).cards_total == 12
+    assert (await service.stats("pt")).cards_total == 1
+    assert (await service.stats()).cards_total == 13
+
+    created = await service.add_card(
+        CardCreateRequest(front="puxar", back="tirar"), cockpit="pt"
+    )
+    assert created.id > 0
+    assert (await service.stats("pt")).cards_total == 2
+

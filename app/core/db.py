@@ -57,7 +57,14 @@ CREATE INDEX IF NOT EXISTS idx_reviews_card ON reviews(card_id);
 
 # Baseline schema is version 1. Future schema changes append a migration script
 # here; each is applied in order based on PRAGMA user_version.
-MIGRATIONS: tuple[str, ...] = ()
+MIGRATIONS: tuple[str, ...] = (
+    # v2: scope SRS decks to a cockpit (en/pt/bible) so each cockpit only sees
+    # its own decks, review queues, and stats. Existing decks stay in English.
+    """
+    ALTER TABLE decks ADD COLUMN cockpit TEXT NOT NULL DEFAULT 'en';
+    """,
+)
+
 
 
 class Database:

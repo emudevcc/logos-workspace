@@ -5,7 +5,7 @@ from app.core.config import get_settings
 
 def test_settings_defaults() -> None:
     settings = get_settings()
-    assert settings.app_name == "English Cockpit OS"
+    assert settings.app_name == "Logos Workspace"
     assert settings.ws_heartbeat_interval > 0
     assert settings.ws_heartbeat_timeout > 0
     assert settings.llm_base_url.endswith("/openai/v1")

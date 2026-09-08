@@ -74,6 +74,17 @@ class Settings(BaseSettings):
     )
     deepgram_daily_limit: int = Field(default=200, ge=0)
 
+    bible_api_key: str = Field(default="", validation_alias="BIBLE_API_KEY")
+    bible_api_base_url: str = Field(
+        default="https://api.scripture.api.bible/v1", validation_alias="BIBLE_API_BASE_URL"
+    )
+    bible_api_cache_ttl_seconds: float = Field(
+        default=7 * 86400.0, gt=0, validation_alias="BIBLE_API_CACHE_TTL_SECONDS"
+    )
+    bible_default_translation: str = Field(
+        default="RVR60", validation_alias="BIBLE_DEFAULT_TRANSLATION"
+    )
+
     stt_provider: Literal["deepgram", "whisper"] = Field(
         default="deepgram", validation_alias="STT_PROVIDER"
     )

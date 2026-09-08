@@ -829,3 +829,20 @@ button.primary:focus-visible,
 #card-modal-title {
   margin-bottom: 0.75rem;
 }
+
+/* Logos Workspace M1: cockpit shell */
+.app-shell [hidden] {
+  display: none !important;
+}
+.cockpit-hidden {
+  display: none !important;
+}
+.cockpit-switch {
+  margin: 2px 0 14px;
+}
+.segmented.cockpit-switch .chip {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+  padding-inline: 8px;
+}

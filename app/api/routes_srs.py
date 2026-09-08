@@ -19,9 +19,12 @@ router = APIRouter(prefix="/api/srs", tags=["srs"])
 
 
 @router.get("/decks", response_model=list[DeckOut])
-async def list_decks(request: Request) -> list[DeckOut]:
+async def list_decks(
+    request: Request,
+    cockpit: str = Query(default="en", pattern="^(en|pt|bible)$"),
+) -> list[DeckOut]:
     service: SrsService = request.app.state.srs
-    return await service.list_decks()
+    return await service.list_decks(cockpit)
 
 
 @router.get("/decks/{deck_id}/due", response_model=list[CardOut])
@@ -46,9 +49,12 @@ async def new_cards(
 
 
 @router.get("/stats", response_model=Stats)
-async def stats(request: Request) -> Stats:
+async def stats(
+    request: Request,
+    cockpit: str = Query(default="en", pattern="^(en|pt|bible)$"),
+) -> Stats:
     service: SrsService = request.app.state.srs
-    data = await service.stats()
+    data = await service.stats(cockpit)
     data.daily_goal = request.app.state.settings.daily_review_goal
     return data
 
@@ -73,9 +79,13 @@ async def review(payload: ReviewRequest, request: Request) -> ReviewResponse:
     response_model=CardOut,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_card(payload: CardCreateRequest, request: Request) -> CardOut:
+async def create_card(
+    payload: CardCreateRequest,
+    request: Request,
+    cockpit: str = Query(default="en", pattern="^(en|pt|bible)$"),
+) -> CardOut:
     service: SrsService = request.app.state.srs
     try:
-        return await service.add_card(payload)
+        return await service.add_card(payload, cockpit)
     except SrsError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

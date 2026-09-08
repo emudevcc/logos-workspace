@@ -1,8 +1,17 @@
-// Bootstraps the dashboard: WebSocket client, event bus, and feature modules.
+// Bootstraps the dashboard: cockpit switcher, WebSocket client, event bus, and
+// per-cockpit feature modules. Modules mount lazily the first time their
+// cockpit becomes active, so hidden cockpits never fetch or spend LLM budget.
 
 import { createBus } from "./lib/bus.js";
 import { h } from "./lib/dom.js";
 import { createWsClient } from "./ws_client.js";
+import {
+  getActiveCockpit,
+  getCockpitView,
+  normalizeCockpit,
+  setActiveCockpit,
+  setCockpitView,
+} from "./lib/cockpit.js";
 import * as declutter from "./components/declutter.js";
 import * as dictionary from "./components/dictionary.js";
 import * as grammar from "./components/grammar.js";
@@ -37,6 +46,8 @@ const MODULES = {
   "weekly-plan": weeklyPlan,
 };
 
+let moduleCtx = null;
+
 function boot() {
   const bus = createBus();
   const statusEl = document.getElementById("ws-status");
@@ -55,37 +66,101 @@ function boot() {
   });
   ws.connect();
 
-  const ctx = { bus, ws };
-  for (const section of document.querySelectorAll("[data-module]")) {
-    const name = section.dataset.module;
-    const slot = section.querySelector("[data-slot]");
-    const module = MODULES[name];
-    if (module && slot) module.init(slot, ctx);
-  }
-
+  moduleCtx = { bus, ws };
   dictionary.init();
-  stats.init(document.getElementById("cockpit-stats"), ctx);
+  stats.init(document.getElementById("cockpit-stats"), moduleCtx);
+  setupCockpitSwitcher();
   setupNavigation();
-  setupBadges();
   setupCardModal();
   setupMagic();
   setupHints();
+
+  // Render the persisted cockpit (default: English) and mount its modules.
+  applyCockpit(getActiveCockpit(window.localStorage), { persist: false, announce: false });
 }
 
-function setupMagic() {
-  const main = document.querySelector(".app-main");
-  if (!main) return;
-  // Match the CSS (pointer:fine) gate in main.css — never mount the mouse
-  // tracker on kiosk/touch surfaces that can't show the spotlight.
-  if (!window.matchMedia("(pointer: fine)").matches) return;
-  main.addEventListener("mousemove", (event) => {
-    const target = event.target instanceof Element ? event.target : null;
-    const card = target?.closest?.(".card");
-    if (!card) return;
-    const rect = card.getBoundingClientRect();
-    card.style.setProperty("--x", `${event.clientX - rect.left}px`);
-    card.style.setProperty("--y", `${event.clientY - rect.top}px`);
-  });
+/** Mount every [data-module] inside the given cockpit's panels, once each. */
+function mountCockpitModules(cockpit) {
+  for (const panel of document.querySelectorAll(`[data-view-panel][data-cockpit="${cockpit}"]`)) {
+    for (const section of panel.querySelectorAll("[data-module]")) {
+      if (section.dataset.mounted) continue;
+      const slot = section.querySelector("[data-slot]");
+      const module = MODULES[section.dataset.module];
+      if (module && slot) module.init(slot, moduleCtx);
+      section.dataset.mounted = "1";
+    }
+  }
+}
+
+/** Add the module icon badge to the active cockpit's cards (once per card). */
+function badgeCockpitCards(cockpit) {
+  for (const card of document.querySelectorAll(
+    `[data-view-panel][data-cockpit="${cockpit}"] [data-module]`,
+  )) {
+    const title = card.querySelector(".card-title");
+    if (!title || title.querySelector(".badge")) continue;
+    const path = MODULE_ICONS[card.dataset.module];
+    if (!path) continue;
+    const badge = h("span", { class: "badge", "aria-hidden": "true" });
+    // Static, trusted SVG path (not user input) — safe to inject.
+    badge.innerHTML =
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+    title.prepend(badge);
+  }
+}
+
+function setupCockpitSwitcher() {
+  for (const button of document.querySelectorAll("[data-cockpit-switch]")) {
+    button.addEventListener("click", () => {
+      const cockpit = normalizeCockpit(button.dataset.cockpitSwitch);
+      if (cockpit === (document.body.dataset.cockpit || "en")) return;
+      setActiveCockpit(window.localStorage, cockpit);
+      applyCockpit(cockpit, { persist: false, announce: true });
+    });
+  }
+}
+
+/**
+ * Make one cockpit's sidebar sections/panels visible and mount its modules.
+ * @param {string} cockpit
+ * @param {{persist?: boolean, announce?: boolean}} [opts]
+ */
+function applyCockpit(cockpit, { persist = true, announce = true } = {}) {
+  if (persist) setActiveCockpit(window.localStorage, cockpit);
+  document.body.dataset.cockpit = cockpit;
+
+  for (const button of document.querySelectorAll("[data-cockpit-switch]")) {
+    button.classList.toggle("is-active", button.dataset.cockpitSwitch === cockpit);
+  }
+
+  const saved = getCockpitView(window.localStorage, cockpit);
+  const panels = [...document.querySelectorAll("[data-view-panel]")];
+  const panelIds = new Set(panels.map((panel) => panel.dataset.viewPanel));
+  const activeView = saved && panelIds.has(saved) ? saved : null;
+
+  let fallbackView = null;
+  for (const item of document.querySelectorAll("[data-view]")) {
+    const mine = item.dataset.cockpit === cockpit;
+    item.classList.toggle("cockpit-hidden", !mine);
+    if (!mine) {
+      item.classList.remove("is-active");
+      continue;
+    }
+    if (!fallbackView) fallbackView = item.dataset.view;
+    item.classList.toggle("is-active", item.dataset.view === (activeView || fallbackView));
+  }
+  for (const panel of panels) {
+    const mine = panel.dataset.cockpit === cockpit;
+    const view = activeView || fallbackView;
+    panel.hidden = !mine || panel.dataset.viewPanel !== view;
+  }
+  if (activeView === null && fallbackView) {
+    setCockpitView(window.localStorage, cockpit, fallbackView);
+  }
+
+  badgeCockpitCards(cockpit);
+  mountCockpitModules(cockpit);
+  if (announce && moduleCtx) moduleCtx.bus.emit("cockpit:changed", { cockpit });
 }
 
 const MODULE_ICONS = {
@@ -105,18 +180,20 @@ const MODULE_ICONS = {
   register: '<path d="M8 4 3 8l5 4"/><path d="M3 8h16M16 20l5-4-5-4"/><path d="M21 16H5"/>',
 };
 
-function setupBadges() {
-  for (const card of document.querySelectorAll("[data-module]")) {
-    const title = card.querySelector(".card-title");
-    if (!title || title.querySelector(".badge")) continue;
-    const path = MODULE_ICONS[card.dataset.module];
-    if (!path) continue;
-    const badge = h("span", { class: "badge", "aria-hidden": "true" });
-    // Static, trusted SVG path (not user input) — safe to inject.
-    badge.innerHTML =
-      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
-    title.prepend(badge);
-  }
+function setupMagic() {
+  const main = document.querySelector(".app-main");
+  if (!main) return;
+  // Match the CSS (pointer:fine) gate in main.css — never mount the mouse
+  // tracker on kiosk/touch surfaces that can't show the spotlight.
+  if (!window.matchMedia("(pointer: fine)").matches) return;
+  main.addEventListener("mousemove", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const card = target?.closest?.(".card");
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty("--x", `${event.clientX - rect.left}px`);
+    card.style.setProperty("--y", `${event.clientY - rect.top}px`);
+  });
 }
 
 function setupCardModal() {
@@ -162,12 +239,19 @@ function setupNavigation() {
   const panels = document.querySelectorAll("[data-view-panel]");
   for (const item of items) {
     item.addEventListener("click", () => {
+      if (item.classList.contains("cockpit-hidden")) return;
+      const cockpit = item.dataset.cockpit || "en";
       const view = item.dataset.view;
+      setCockpitView(window.localStorage, cockpit, view);
       for (const panel of panels) {
-        panel.hidden = panel.dataset.viewPanel !== view;
+        if (panel.dataset.cockpit === cockpit) {
+          panel.hidden = panel.dataset.viewPanel !== view;
+        }
       }
       for (const other of items) {
-        other.classList.toggle("is-active", other.dataset.view === view);
+        if (other.dataset.cockpit === cockpit) {
+          other.classList.toggle("is-active", other.dataset.view === view);
+        }
       }
     });
   }

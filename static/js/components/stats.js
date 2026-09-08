@@ -2,6 +2,7 @@
 // content-refresh countdown, and a force-refresh button.
 
 import { apiGet } from "../lib/api.js";
+import { getActiveCockpit } from "../lib/cockpit.js";
 import { clear, h } from "../lib/dom.js";
 import { formatClock, isExpired, remainingSeconds } from "../lib/timer.js";
 
@@ -41,7 +42,8 @@ export function init(el, ctx = {}) {
 
   async function load() {
     try {
-      const s = await apiGet("/api/srs/stats");
+      const cockpit = getActiveCockpit(window.localStorage);
+      const s = await apiGet(`/api/srs/stats?cockpit=${cockpit}`);
       clear(el);
       render(s);
       el.append(refreshBtn, countdownEl);
@@ -87,6 +89,8 @@ export function init(el, ctx = {}) {
     bus?.emit("content:refresh");
     tick();
   }
+
+  bus?.on("cockpit:changed", load);
 
   load();
   tick();
