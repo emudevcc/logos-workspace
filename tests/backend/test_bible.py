@@ -1,0 +1,278 @@
+"""Tests for the Bíblia cockpit: registry, parser, provider, studies, routes."""
+
+from __future__ import annotations
+
+import os
+
+import httpx
+import pytest
+
+from app.core.db import Database
+from app.services.bible_books import BOOKS, all_profiles
+from app.services.bible_parser import BibleReferenceError, parse_reference
+from app.services.bible_provider import (
+    BibleDbCache,
+    BibleNotConfiguredError,
+    BibleTextProvider,
+    BibleTranslationUnavailableError,
+    passage_id_for,
+)
+from app.services.bible_studies import BibleStudyService
+from tests.backend.helpers import ClientFactory, FakeLLM, make_mock_http
+
+SAMPLE_REPORT = {
+    "text_literary": {
+        "genre": "Epístola",
+        "authorial_tone": "Solemne y pastoral",
+        "unit_division": "Unidad de consuelo final del capítulo 8",
+    },
+    "historical_grammatical": {
+        "author": "Pablo",
+        "recipients": "Iglesia en Roma",
+        "date": "≈ 57 d.C.",
+        "geopolitical_context": "Roma, capital del imperio",
+        "occasion": "Exposición del evangelio",
+    },
+    "lexical_exegesis": [
+        {
+            "term": "πάντα",
+            "transliteration": "panta",
+            "lemma": "πᾶς",
+            "parsing": "acusativo plural neutro",
+            "contextual_definition": "todas las cosas",
+            "consensus_note": "Uso inclusivo en contexto",
+        }
+    ],
+    "redemptive_theological": {
+        "placement_redemptive_history": "Redención consumada en Cristo",
+        "cross_references": ["Jn 10:28-29"],
+        "christological_significance": "Seguridad en el amor de Cristo",
+    },
+    "core_principle": "Nada separa al creyente del amor de Dios en Cristo.",
+    "practical_application": {
+        "action_items": ["Memorizar Rm 8:38-39"],
+        "reflection_prompts": ["¿Dónde temo ser separado de Cristo?"],
+        "obedience_areas": ["Confiar en la perseverancia final"],
+    },
+    "guardrail_notes": "Lectura histórico-gramatical; sin alegorización.",
+}
+
+
+def make_bible_handler(passage_content: str = "texto del pasaje"):
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path.endswith("/bibles"):
+            return httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "id": "bible-rvr09",
+                            "abbreviation": "RVR09",
+                            "name": "Reina Valera 1909",
+                        },
+                        {
+                            "id": "bible-rvr60",
+                            "abbreviation": "RVR60",
+                            "name": "Reina-Valera 1960",
+                        },
+                    ]
+                },
+            )
+        if "/passages/" in path:
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "content": passage_content,
+                        "reference": "Romanos 8:31-39",
+                        "verseCount": 9,
+                    }
+                },
+            )
+        return httpx.Response(404, json={"message": "not found"})
+
+    return handler
+
+
+def test_books_registry_has_66_unique_books() -> None:
+    codes = [book.code for book in BOOKS]
+    assert len(codes) == 66
+    assert len(set(codes)) == 66
+    assert len(all_profiles()) == 66
+    nt = [book for book in BOOKS if book.testament == "NT"]
+    assert len(nt) == 27
+
+
+def test_parser_resolves_names_across_languages() -> None:
+    assert parse_reference("Romanos 8:31-39").book_code == "ROM"
+    assert parse_reference("Rm 8:31-39").chapter == 8
+    assert parse_reference("João 3:16").book_code == "JHN"
+    assert parse_reference("Jo 3:16").book_code == "JHN"  # ambiguous 'Jo' prefers João
+    assert parse_reference("Juan 3:16").book_code == "JHN"
+    assert parse_reference("Gênesis 1").start_verse is None
+    assert parse_reference("Genesis 1:1").start_verse == 1
+    one_cor = parse_reference("1 Coríntios 13:4-7")
+    assert one_cor.book_code == "1CO"
+    assert one_cor.end_verse == 7
+
+
+def test_parser_rejects_invalid_references() -> None:
+    with pytest.raises(BibleReferenceError):
+        parse_reference("Libro Inexistente 3:16")
+    with pytest.raises(BibleReferenceError):
+        parse_reference("Romanos 8:40-10")  # end before start
+    with pytest.raises(BibleReferenceError):
+        parse_reference("Romanos")
+
+
+def test_passage_id_building() -> None:
+    ref = parse_reference("Romanos 8:31-39")
+    assert passage_id_for(ref) == "ROM.8.31-ROM.8.39"
+    single = parse_reference("João 3:16")
+    assert passage_id_for(single) == "JHN.3.16"
+    chapter = parse_reference("Isaías 53")
+    assert passage_id_for(chapter) == "ISA.53"
+
+
+async def test_bible_db_cache_round_trip(database: Database) -> None:
+    cache = BibleDbCache(database, ttl_seconds=7 * 86400)
+    assert await cache.get("b1", "ROM.8") is None
+    await cache.put("b1", "ROM.8", "texto")
+    assert await cache.get("b1", "ROM.8") == "texto"
+
+
+async def test_provider_fetches_and_caches(database: Database) -> None:
+    client = make_mock_http(make_bible_handler("texto del pasaje"))
+    cache = BibleDbCache(database, ttl_seconds=7 * 86400)
+    provider = BibleTextProvider(
+        client,
+        base_url="https://example.test/v1",
+        api_key="test-key",
+        default_translation="RVR09",
+        cache=cache,
+    )
+    ref = parse_reference("Rm 8:31-39", translation="RVR09")
+    first = await provider.fetch_text(ref, "RVR09")
+    second = await provider.fetch_text(ref, "RVR09")
+    assert first == "texto del pasaje"
+    assert second == "texto del pasaje"  # served from the SQLite cache
+
+
+async def test_provider_requires_key() -> None:
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler()),
+        base_url="https://example.test/v1",
+        api_key="",
+        default_translation="RVR09",
+    )
+    with pytest.raises(BibleNotConfiguredError):
+        await provider.fetch_text(parse_reference("Rm 8:31-39"), "RVR09")
+
+
+async def test_provider_rejects_unknown_translation() -> None:
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler()),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="RVR09",
+    )
+    with pytest.raises(BibleTranslationUnavailableError):
+        await provider.fetch_text(parse_reference("Rm 8:31-39"), "NTV99")
+
+
+async def test_study_service_persists_and_reads_back(database: Database) -> None:
+    client = make_mock_http(make_bible_handler("texto del pasaje"))
+    provider = BibleTextProvider(
+        client,
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="RVR09",
+    )
+    llm = FakeLLM(SAMPLE_REPORT)
+    service = BibleStudyService(database, llm, provider)
+
+    record = await service.create_study("Rm 8:31-39", translation="RVR09")
+    assert record.id > 0
+    assert record.reference == "Romanos 8:31-39"
+    assert record.translation == "RVR09"
+    assert record.passage_text == "texto del pasaje"
+    # Authoritative echo overrides whatever the model claimed.
+    assert record.report.reference == "Romanos 8:31-39"
+    assert record.report.core_principle == SAMPLE_REPORT["core_principle"]
+
+    summaries = await service.list_studies()
+    assert [item.id for item in summaries] == [record.id]
+
+    loaded = await service.get_study(record.id)
+    assert loaded is not None
+    assert loaded.report.text_literary.genre == "Epístola"
+    assert await service.delete_study(record.id) is True
+    assert await service.get_study(record.id) is None
+
+
+def test_books_endpoint(client_factory: ClientFactory) -> None:
+    with client_factory() as client:
+        response = client.get("/api/bible/books")
+        assert response.status_code == 200
+        assert len(response.json()) == 66
+
+
+def test_passage_endpoint_requires_key(client_factory: ClientFactory) -> None:
+    with client_factory() as client:
+        response = client.get("/api/bible/passage", params={"reference": "Rm 8:31-39"})
+        assert response.status_code == 503
+
+
+def test_study_endpoint_flow_with_key(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(
+            handler=make_bible_handler("texto do capítulo"), llm=FakeLLM(SAMPLE_REPORT)
+        ) as client:
+            books = client.get("/api/bible/books").json()
+            assert len(books) == 66
+
+            passage = client.get("/api/bible/passage", params={"reference": "Rm 8:31-39"})
+            assert passage.status_code == 200
+            assert passage.json()["passage_text"] == "texto do capítulo"
+
+            created = client.post("/api/bible/study", json={"reference": "Rm 8:31-39"})
+            assert created.status_code == 201
+            body = created.json()
+            assert body["report"]["core_principle"] == SAMPLE_REPORT["core_principle"]
+            assert body["report"]["reference"] == "Romanos 8:31-39"
+
+            history = client.get("/api/bible/studies").json()
+            assert [item["id"] for item in history] == [body["id"]]
+
+            detail = client.get(f"/api/bible/studies/{body['id']}")
+            assert detail.status_code == 200
+            assert detail.json()["translation"] == "RVR09"
+
+            assert client.delete(f"/api/bible/studies/{body['id']}").status_code == 204
+            assert client.get(f"/api/bible/studies/{body['id']}").status_code == 404
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)
+
+
+def test_study_endpoint_rejects_bad_reference(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(handler=make_bible_handler(), llm=FakeLLM(SAMPLE_REPORT)) as client:
+            response = client.post("/api/bible/study", json={"reference": "zzz 9:9"})
+            assert response.status_code == 422
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)

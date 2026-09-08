@@ -67,6 +67,29 @@ MIGRATIONS: tuple[str, ...] = (
     """
     ALTER TABLE cards ADD COLUMN l1_hint TEXT NOT NULL DEFAULT '';
     """,
+    # v4: Bible cockpit persistence (passage text cache + saved studies).
+    """
+    CREATE TABLE IF NOT EXISTS bible_cache (
+        bible_id    TEXT NOT NULL,
+        passage_id  TEXT NOT NULL,
+        content     TEXT NOT NULL DEFAULT '',
+        fetched_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+        PRIMARY KEY (bible_id, passage_id)
+    ) WITHOUT ROWID;
+
+    CREATE TABLE IF NOT EXISTS studies (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        reference    TEXT NOT NULL,
+        translation  TEXT NOT NULL DEFAULT '',
+        book_code    TEXT NOT NULL DEFAULT '',
+        chapter      INTEGER NOT NULL DEFAULT 0,
+        start_verse  INTEGER,
+        end_verse    INTEGER,
+        passage_text TEXT NOT NULL DEFAULT '',
+        report       TEXT NOT NULL,
+        created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+    """,
 )
 
 

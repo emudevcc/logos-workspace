@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes_assist import router as assist_router
+from app.api.routes_bible import router as bible_router
 from app.api.routes_content import router as content_router
 from app.api.routes_learning import router as learning_router
 from app.api.routes_plan import router as plan_router
@@ -32,6 +33,8 @@ from app.core.config import get_settings
 from app.core.db import Database
 from app.core.ratelimit import RateLimiter
 from app.core.ws_manager import ConnectionManager
+from app.services.bible_provider import BibleDbCache, BibleTextProvider
+from app.services.bible_studies import BibleStudyService
 from app.services.declutter import DeclutterService
 from app.services.deepgram import (
     DeepgramBudgetExceeded,
@@ -85,6 +88,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await seed_pt_decks(database)
     app.state.db = database
     app.state.srs = SrsService(database)
+
+    app.state.bible_provider = BibleTextProvider(
+        app.state.http,
+        base_url=settings.bible_api_base_url,
+        api_key=settings.bible_api_key,
+        default_translation=settings.bible_default_translation,
+        cache=BibleDbCache(database, ttl_seconds=settings.bible_api_cache_ttl_seconds),
+    )
+    app.state.bible_studies = BibleStudyService(
+        database, app.state.llm, app.state.bible_provider
+    )
 
     ws_manager = ConnectionManager(
         heartbeat_interval=settings.ws_heartbeat_interval,
@@ -192,6 +206,7 @@ def create_app(
     app.include_router(srs_router)
     app.include_router(prep_router)
     app.include_router(assist_router)
+    app.include_router(bible_router)
     app.include_router(pt_router)
 
     _register_exception_handlers(app)
@@ -206,6 +221,7 @@ def create_app(
             "status": "ok",
             "app": settings.app_name,
             "llm_configured": bool(settings.llm_api_key),
+            "bible_configured": bool(settings.bible_api_key),
             "stt_provider": settings.stt_provider,
             "deepgram_configured": bool(settings.deepgram_api_key),
             "whisper_configured": settings.stt_provider == "whisper",

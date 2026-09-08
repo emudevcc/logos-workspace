@@ -32,6 +32,7 @@ def client_factory(tmp_path: Path) -> Iterator[ClientFactory]:
     """Build a ``TestClient`` with an isolated DB and optional mock HTTP/LLM."""
     os.environ["COCKPIT_DB"] = str(tmp_path / "cockpit.db")
     os.environ["STT_PROVIDER"] = "deepgram"  # isolate tests from the local .env
+    os.environ["BIBLE_API_KEY"] = ""  # isolate tests from the local .env
     get_settings.cache_clear()
 
     def _build(
@@ -47,3 +48,4 @@ def client_factory(tmp_path: Path) -> Iterator[ClientFactory]:
     get_settings.cache_clear()
     os.environ.pop("COCKPIT_DB", None)
     os.environ.pop("STT_PROVIDER", None)
+    os.environ.pop("BIBLE_API_KEY", None)
