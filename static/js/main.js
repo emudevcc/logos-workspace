@@ -18,6 +18,11 @@ import * as grammar from "./components/grammar.js";
 import * as news from "./components/news.js";
 import * as podcast from "./components/podcast.js";
 import * as prepDrill from "./components/prep_drill.js";
+import * as ptFrases from "./components/pt_frases.js";
+import * as ptGrammar from "./components/pt_grammar.js";
+import * as ptNews from "./components/pt_news.js";
+import * as ptPronuncia from "./components/pt_pronuncia.js";
+import * as ptWordOfDay from "./components/pt_word_of_day.js";
 import * as radio from "./components/radio.js";
 import * as register from "./components/register.js";
 import * as shadowing from "./components/shadowing.js";
@@ -44,6 +49,11 @@ const MODULES = {
   shadowing,
   register,
   "weekly-plan": weeklyPlan,
+  "pt-word-of-day": ptWordOfDay,
+  "pt-news": ptNews,
+  "pt-grammar": ptGrammar,
+  "pt-pronuncia": ptPronuncia,
+  "pt-frases": ptFrases,
 };
 
 let moduleCtx = null;
@@ -178,6 +188,11 @@ const MODULE_ICONS = {
   radio: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 2l6 5 6-5"/>',
   declutter: '<path d="M12 20h9"/><path d="M16.7 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   register: '<path d="M8 4 3 8l5 4"/><path d="M3 8h16M16 20l5-4-5-4"/><path d="M21 16H5"/>',
+  "pt-word-of-day": '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  "pt-news": '<path d="M4 22h16a2 2 0 0 0 2-2V4H8a2 2 0 0 0-2 2v15a2 2 0 0 1-4 0V9"/><path d="M11 7h7M11 11h7M11 15h4"/>',
+  "pt-grammar": '<path d="M4 20V5l16-6v14M15 9 6 18"/><path d="M5 12l4 3"/>',
+  "pt-pronuncia": '<path d="M14 3 6 14h5l-1 7 9-12h-6l1-6z"/>',
+  "pt-frases": '<path d="M2 12h2l2-7 3 14 3-12 2 8 2-5h4"/>',
 };
 
 function setupMagic() {

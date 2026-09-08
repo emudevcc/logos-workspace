@@ -846,3 +846,45 @@ button.primary:focus-visible,
   justify-content: center;
   padding-inline: 8px;
 }
+
+/* Logos Workspace M2: Português cockpit */
+.es-note {
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-inline-start: 3px solid var(--accent, #6ea8fe);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 10%, transparent);
+  border-radius: 0.35rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.pt-section-title {
+  margin: 0.9rem 0 0.3rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+.pt-rule-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 0.3rem; }
+.pt-rule-ok { color: var(--ok, #7bd88f); }
+.pt-rule-err { color: var(--err, #ff8a8a); }
+.pt-list { list-style: none; display: grid; gap: 0.6rem; padding: 0; }
+.pt-pair-row { display: grid; gap: 0.15rem; }
+.pt-keys { font-weight: 600; }
+.pt-pitfall { border-block-end: 1px solid var(--surface-2, #333); padding-bottom: 0.4rem; }
+.pt-coach-input {
+  width: 100%;
+  background: var(--surface-1, #1e1e20);
+  color: inherit;
+  border: 1px solid var(--surface-2, #333);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font: inherit;
+}
+.pt-sentence {
+  font-size: 1.35rem;
+  line-height: 1.5;
+  margin: 0 0 0.6rem;
+  font-family: Georgia, "Iowan Old Style", serif;
+}
+.pt-dica { margin-top: 0.35rem; font-size: 0.85rem; opacity: 0.85; }
+.pt-tabs { margin-bottom: 0.6rem; }
