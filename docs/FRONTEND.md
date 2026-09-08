@@ -126,3 +126,33 @@ npm test            # node --test tests/frontend/  (55 tests)
 
 Pure logic in `lib/` is covered; DOM components are syntax-checked (`node --check`)
 and exercised on-device.
+
+## Cockpit shell (M1+)
+
+- The sidebar has a **segmented cockpit switcher** (English · Português ·
+  Bíblia). Every nav item and view panel carries `data-cockpit`; switching shows
+  only the active cockpit's sections and remembers its last view.
+- State is persisted in `localStorage` by the pure lib `lib/cockpit.js`
+  (`logos-workspace.active-cockpit`, `logos-workspace.view.<cockpit>`).
+- Modules are mounted **lazily per cockpit** (`main.js` `mountCockpitModules`),
+  so a hidden cockpit never fetches or spends LLM budget; card icon badges are
+  applied per cockpit on activation.
+- Header stats and the Today card fetch `/api/srs/stats?cockpit=…` and reload on
+  the `cockpit:changed` bus event.
+
+### PT modules (`pt_*`, cockpits `pt`)
+
+`pt_word_of_day` (add-to-review posts into the PT cockpit), `pt_news`,
+`pt_grammar` (rule of the day + 'Outra regra' + LLM coach), `pt_pronuncia`
+(pairs/pitfalls with `pt-BR` audio), `pt_frases`. Spanish scaffolding renders as
+`.es-note` blocks (`🇪🇸 …`). `pronounce`/`pronounceButton` accept a BCP-47 `lang`
+(default `en-US`; PT passes `pt-BR`). `srs_deck` is cockpit-aware: it loads
+`/api/srs/decks?cockpit=…`, localizes its labels for PT, and shows `l1_hint` on
+the back.
+
+### Bible modules (cockpit `bible`)
+
+`bible_study` (input + example chips → POST `/api/bible/study`, renders via
+`lib/bible_render.js`), `bible_history` (saved studies open/delete, list ↔
+detail), `bible_books` (66-book registry grouped by testament). Study output is
+in Spanish; chrome instructions in Portuguese.

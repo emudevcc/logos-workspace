@@ -7,8 +7,8 @@ and responses are validated with Pydantic. Error bodies are `{"detail": "..."}`.
 
 | Code | Meaning |
 |---|---|
-| 200 / 201 | success (201 for created SRS cards) |
-| 404 | card/deck not found |
+| 200 / 201 / 204 | success (201 for created cards/studies; 204 on delete) |
+| 404 | card/deck/study not found |
 | 422 | validation error (`extra="forbid"` on request models) |
 | 429 | rate limit or daily spend budget exceeded |
 | 502 | external LLM/Deepgram upstream failure |
@@ -18,7 +18,7 @@ and responses are validated with Pydantic. Error bodies are `{"detail": "..."}`.
 
 ### `GET /healthz`
 Liveness probe + config flags:
-`{"status":"ok","app":"English Cockpit OS","llm_configured":true,"stt_provider":"deepgram","deepgram_configured":true,"whisper_configured":false}`
+`{"status":"ok","app":"Logos Workspace","llm_configured":true,"bible_configured":true,"stt_provider":"deepgram","deepgram_configured":true,"whisper_configured":false}`
 
 ### `GET /healthz/external`
 Live (free) reachability probe of Groq and Deepgram:
@@ -264,3 +264,74 @@ Request `{"audio_url":"https://…"}` (http/https only; optional `DEEPGRAM_ALLOW
 - Client sends `{"type":"stop"}` (or closes) to end.
 - Transcripts are broadcast to `/ws` clients as `radio:transcript` messages.
 - On failure, server sends `{"type":"error","detail":"…"}`.
+
+## SRS cockpit scoping
+
+SRS endpoints accept `?cockpit=en|pt|bible` (default `en`): `/api/srs/decks`,
+`/api/srs/stats`, and `POST /api/srs/cards` are scoped to that cockpit's decks.
+Startup seeding creates `workplace` (English) plus `pt-vocabulario` and
+`pt-falsos-cognatos` (Português). Cards carry an optional `l1_hint` (Spanish
+scaffolding note) on create, echoed in `CardOut`.
+
+## Português cockpit (PT-BR)
+
+Immersion-first PT-BR content with Spanish scaffolding (`nota_es`).
+
+- `GET /api/pt/word-of-day[?date=YYYY-MM-DD]` — stable curated rotation
+- `GET /api/pt/word-of-day/random` — fresh curated item (no recent repeats)
+- `GET /api/pt/news[?refresh=true]` — G1 / Exame / Tecnoblog headlines (cached, no LLM)
+- `GET /api/pt/grammar/rules` · `GET /api/pt/grammar/rule-of-day[?date=]` ·
+  `GET /api/pt/grammar/rule-random[?exclude=<title>]`
+- `POST /api/pt/grammar/coach` `{"pergunta":"…"}` (LLM, rate-limited) →
+  `{"resposta_pt":"…","nota_es":"…","exemplos":["…"]}`
+- `GET /api/pt/pronunciation/minimal-pairs` · `GET /api/pt/pronunciation/pitfalls`
+- `GET /api/pt/practice/sentence` (LLM with curated fallback, rate-limited) →
+  `{"frase":"…","nota_es":"…","dica":"…"}`
+
+```json
+{"date":"2026-09-08","expression":"cansativo","category":"palavra",
+ "definition_pt":"Que causa cansaço; exaustivo.",
+ "nota_es":"Não confundir com 'cansado' (estado)…","examples":["…","…"]}
+```
+
+## Bíblia cockpit
+
+Text comes from **API.Bible** (`api.scripture.api.bible/v1`); passages are
+cached in SQLite (`bible_cache`) for `BIBLE_API_CACHE_TTL_SECONDS`.
+
+- `GET /api/bible/books` — the 66-book registry:
+  `{"code":"ROM","name_pt":"Romanos","testament":"NT","genre":"Epístola Paulina",
+    "author":"Paulo","date":"≈ 57 d.C.","occasion":"…"}`
+- `GET /api/bible/passage?reference=Rm 8:31-39[&translation=RVR09]` (rate-limited)
+  → `{"ref":{…,"display":"Romanos 8:31-39","translation":"RVR09"},
+      "passage_text":"     [31] ¿Pues qué diremos á esto? …","copyright":""}`
+- `POST /api/bible/study` `{"reference":"Rm 8:31-39","translation":""}` (LLM,
+  rate-limited) → **201** `StudyRecord` (six-section report, saved automatically)
+- `GET /api/bible/studies` — history summaries
+- `GET /api/bible/studies/{id}` · `DELETE /api/bible/studies/{id}` (→ 204)
+
+Errors: `503` without `BIBLE_API_KEY`; `502` upstream failure or translation
+unavailable; `422` unparsable reference.
+
+Study report shape (spec §2; echo fields authoritative):
+
+```json
+{"reference":"Romanos 8:31-39","translation":"RVR09","passage_text":"…",
+ "text_literary":{"genre":"…","authorial_tone":"…","unit_division":"…"},
+ "historical_grammatical":{"author":"…","recipients":"…","date":"…",
+   "geopolitical_context":"…","occasion":"…"},
+ "lexical_exegesis":[{"term":"…","transliteration":"…","lemma":"…",
+   "parsing":"…","contextual_definition":"…","consensus_note":"…"}],
+ "redemptive_theological":{"placement_redemptive_history":"…",
+   "cross_references":["…"],"christological_significance":"…"},
+ "core_principle":"…",
+ "practical_application":{"action_items":["…"],"reflection_prompts":["…"],
+   "obedience_areas":["…"]},
+ "guardrail_notes":"…"}
+```
+
+Notes: the API.Bible Spanish catalog offers **RVR09** (public domain) — the
+default; **RVR60 is not available** there (`BIBLE_DEFAULT_TRANSLATION` overrides
+when another source is integrated). Study generation follows the agreed
+guardrails (literal-grammatical priority, evangelical orthodoxy, no uncited
+claims — each lexical term carries a `consensus_note`).

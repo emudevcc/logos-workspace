@@ -2,15 +2,35 @@
 
 All notable changes to Logos Workspace are documented in this file.
 
-## 2026-09-07 — Logos Workspace bootstrap
+## 2026-09-08 — Logos Workspace 1.0 (M1–M4)
 
-- New public repository `emudevcc/logos-workspace`; baseline tree copied from
-  English Cockpit OS at `83090da` and product renamed **Logos Workspace**.
-- Roadmap in progress: multi-cockpit app (English · Português · Bíblia).
+### Added
 
-# Changelog
+- **Cockpit framework (M1):** one shell, three cockpits (English · Português ·
+  Bíblia). Segmented cockpit switcher, per-cockpit nav/views with remembered
+  last view, lazy per-cockpit module mounting (hidden cockpits never spend LLM
+  budget), cockpit-scoped SRS (`?cockpit=`), schema migration v2
+  (`decks.cockpit`), Bible API config settings, app renamed **Logos Workspace**.
+- **Português cockpit (M2):** Palavra do dia, Notícias do Brasil (G1/Exame/
+  Tecnoblog), PT-BR SRS decks (Vocabulário essencial · Falsos cognatos ES→PT,
+  36 cards) with `l1_hint` Spanish scaffolding (migration v3), grammar rules +
+  LLM coach targeting Spanish-transfer traps, minimal pairs and pronunciation
+  pitfalls, practice sentences with `pt-BR` audio.
+- **Bíblia cockpit (M3):** 66-book registry, PT/ES/EN pericope reference parser,
+  API.Bible text provider with SQLite passage cache (migration v4), six-section
+  exegesis reports (literary · historical-grammatical · lexical with consensus
+  notes · redemptive-theological · principle · application) generated under the
+  agreed guardrails, saved studies + history endpoints.
+- **Docs & operations (M4):** README/docs rewritten for the multi-cockpit
+  product, changelog, macOS LaunchAgent for Logos Workspace
+  (`deploy/macos/install-logos-agent.sh`, port 8090, legacy English agent on
+  8000 untouched).
 
-All notable changes to English Cockpit OS are documented in this file.
+### Notes
+
+- Default Bible translation is **RVR09** (public domain) because API.Bible's
+  Spanish catalog does not offer RVR60; `BIBLE_DEFAULT_TRANSLATION` selects an
+  alternative when another source is added.
 
 ## 2026-09-07 — Fresh, beginner-first practice release
 

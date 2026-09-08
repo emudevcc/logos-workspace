@@ -129,3 +129,43 @@ propagate, so the dashboard always renders something.
   word-boundary matching; the client mirrors it (`static/js/lib/connectors.js`).
 - **Live STT** (`app/services/deepgram_live.py`): a WebSocket session that relays
   browser-captured 16-bit PCM to Deepgram's live endpoint and parses `Results` messages.
+
+## Cockpit model (M1+)
+
+The dashboard hosts three **cockpits** — `en` (English), `pt` (Português), and
+`bible` (Bíblia) — sharing one process, one DB, and one LLM client. Cockpit
+scope lives in three places:
+
+- **SRS decks** carry a `cockpit` column (migration v2). Decks, review
+  statistics, streaks, and default-deck picks are filtered per cockpit;
+  `?cockpit=` defaults to `en` so legacy callers are unchanged.
+- **Services** are per-cockpit instances on `app.state`: `pt_coach`,
+  `pt_sentence`, `pt_news`, and `bible_provider` / `bible_studies`.
+- **Frontend** (see FRONTEND.md) mounts modules lazily per cockpit, so a hidden
+  cockpit never fetches or spends budget.
+
+### Schema versions (PRAGMA user_version)
+
+1. Baseline (decks, cards, reviews).
+2. `decks.cockpit` (`ALTER`), scoping SRS to a cockpit.
+3. `cards.l1_hint` — Spanish scaffolding note (PT cockpit).
+4. `bible_cache` (passage text cache) and `studies` (saved reports).
+
+### Português cockpit
+
+Deterministic content in `pt_content.py` (words, grammar rules, minimal pairs,
+pitfalls, fallback sentences — all with `nota_es` in Spanish). `pt_generators.py`
+wraps the shared LLM with validated JSON and curated fallbacks; `pt_news.py`
+mirrors the English news pipeline with Brazilian feeds (no LLM, TTL-cached).
+Cards added from the PT cockpit persist `l1_hint`.
+
+### Bíblia cockpit
+
+`bible_books.py` (66-book canonical registry, multilingual aliases + profile
+facts), `bible_parser.py` (pure reference parsing), `bible_provider.py`
+(API.Bible client: catalog resolution cached 24 h in memory; passage text cached
+in SQLite `bible_cache`), `bible_studies.py` (LLM six-section report with
+deterministic book-profile grounding; saved to `studies`). The LLM output is
+Pydantic-validated against the agreed schema; the echoed reference/passage text
+always comes from the provider, never from the model. Bible errors map inline in
+the router (`503` no key, `502` upstream/translation, `422` reference).

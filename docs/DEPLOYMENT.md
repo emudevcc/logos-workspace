@@ -41,6 +41,10 @@ at startup. Copy `deploy/env.example` and fill in the keys.
 | `WHISPER_BASE_URL` | `http://localhost:8080` | whisper.cpp server base URL |
 | `WHISPER_TIMEOUT_SECONDS` | `300` | transcription timeout |
 | `WHISPER_MAX_RETRIES` | `2` | retries on 5xx/transport |
+| `BIBLE_API_KEY` | *(empty)* | API.Bible key; enables the Bíblia cockpit |
+| `BIBLE_API_BASE_URL` | `https://api.scripture.api.bible/v1` | API.Bible base URL |
+| `BIBLE_DEFAULT_TRANSLATION` | `RVR09` | Spanish translation label (RVR09 on API.Bible; RVR60 needs another source) |
+| `BIBLE_API_CACHE_TTL_SECONDS` | `604800` | passage cache TTL (7 days) |
 | `RATE_LIMIT_PER_MINUTE` | `30` | per-IP limit on LLM/STT endpoints |
 | `CONTENT_CACHE_TTL_SECONDS` | `600` | news/podcast cache TTL |
 | `DICTIONARY_CACHE_TTL_SECONDS` | `86400` | dictionary cache TTL |
@@ -107,8 +111,13 @@ password).
 Install a LaunchAgent (starts on login, restarts on crash):
 
 ```bash
-./deploy/macos/install-agent.sh
+./deploy/macos/install-agent.sh     # legacy label com.englishcockpit.os (port 8000)
+./deploy/macos/install-logos-agent.sh  # Logos Workspace, com.logosworkspace.os, port 8090
 ```
+
+The Logos LaunchAgent binds `127.0.0.1:8090` via plist `EnvironmentVariables`
+and never touches the legacy English agent on :8000. Point a browser at
+`https://localhost:8090`.
 
 Open the dashboard in a standalone app-mode Chrome window (no tabs/address bar):
 
@@ -187,7 +196,7 @@ Caddy listens on `:8080` and proxies to `127.0.0.1:8000`.
 
 ## Operations
 
-- **Health**: `curl http://localhost:8000/healthz`.
+- **Health**: `curl https://localhost:8090/healthz` (Logos LaunchAgent) or `:8000` (legacy English agent).
 - **Logs**: `journalctl -u english-cockpit -f` (the live-STT relay logs
   `live STT started/stopped` and audio-chunk counts).
 - **Database**: `data/cockpit.db` (WAL); it is excluded from deploys so SRS progress

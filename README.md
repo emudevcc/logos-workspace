@@ -1,138 +1,109 @@
 # Logos Workspace
 
-Modular English immersion + rapid-practice dashboard for a **Raspberry Pi 3B**
-(1 GB RAM) running 24/7 on a secondary display in Chromium Kiosk mode.
+Multi-cockpit study dashboard: **English · Português · Bíblia** in one always-on
+workspace. Built to run headless on a **Raspberry Pi 3B** (1 GB RAM) in Chromium
+kiosk mode or as a **macOS LaunchAgent** on `https://localhost`.
 
 - **Backend:** FastAPI (async), WebSockets, aiosqlite (WAL), external LLM/STT only — no local model.
-- **Frontend:** Vanilla HTML5 + CSS Grid + ES Modules (no framework) — bundled and
-  minified with Vite via `npm run build`; still runs zero-build when no bundle exists.
+- **Frontend:** Vanilla ES modules + Tailwind/DaisyUI, bundled with Vite via
+  `npm run build`; still runs zero-build when no bundle exists.
 - **Process model:** a single async uvicorn worker; one shared `httpx.AsyncClient`,
   one aiosqlite connection, and one WebSocket registry live on `app.state` for the
-  whole process lifetime (no per-request churn on a 1 GB budget).
+  whole process lifetime (no per-request churn on a small machine).
+
+## Cockpits
+
+A **cockpit** is one study domain: sidebar sections, SRS decks, and header stats
+are scoped per cockpit (persisted selection, `?cockpit=en|pt|bible`).
+
+| Cockpit | Content |
+|---|---|
+| **English** | The original English immersion dashboard: Today / Practice / Speak / Write — word & idiom of the day, tech & business news, podcast digest, SRS flashcards, grammar & pronunciation drills, PREP drill, voice roleplay, speech metrics, radio + teleprompter, writing coach, register swap, weekly plan. |
+| **Português** (PT-BR) | Immersion for a native Spanish speaker at intermediate/advanced level, with Spanish scaffolding (`nota_es`/`l1_hint`) on false friends, grammar traps, and pronunciation. Palavra do dia, Notícias do Brasil, flashcards PT-BR (vocabulário essencial + falsos cognatos), gramática (regra do dia + coach LLM), pronúncia (pares mínimos + pegadinhas), frases para repetir. |
+| **Bíblia** | Pericope exegesis (5–15 verses): six-section study reports — literary framework, historical-grammatical context, lexical exegesis with consensus notes, redemptive-theological context, core principle, practical application — grounded on deterministic 66-book profiles, with guardrails (literal-grammatical priority, no speculative allegorization, evangelical orthodoxy, no uncited claims). Saved studies + 66-book registry browser. |
+
+Bible text is fetched from **API.Bible** (api.scripture.api.bible) and cached in
+SQLite. The Spanish catalog ships **Reina-Valera 1909** (public domain) as the
+default translation; **RVR60 is not in the API.Bible Spanish catalog** — set
+`BIBLE_DEFAULT_TRANSLATION` when another source is integrated.
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) — process/resource model, persistence, cost controls, algorithms
+- [Architecture](docs/ARCHITECTURE.md) — process/resource model, persistence, migrations, algorithms
 - [API Reference](docs/API.md) — all endpoints, schemas, and WebSocket protocols
-- [Frontend](docs/FRONTEND.md) — module layout, event flow, feature components, testing
-- [Deployment & Operations](docs/DEPLOYMENT.md) — config, deploy.sh, systemd, kiosk, security
+- [Frontend](docs/FRONTEND.md) — cockpit shell, module layout, event flow, testing
+- [Deployment & Operations](docs/DEPLOYMENT.md) — config, LaunchAgent, deploy.sh, security
 
 ## Layout
 
 ```
 app/
-  __main__.py              `python -m app` entrypoint (binds 127.0.0.1)
   main.py                  app factory, lifespan, DI, exception handlers, static mount
-  api/websocket.py         /ws endpoint (ping/pong heartbeat)
-  api/routes_radio_ws.py   /ws/radio live STT relay (browser audio -> Deepgram)
-  api/routes_content.py    word-of-day, news, podcast digest, dictionary
-  api/routes_learning.py   verbs, minimal pairs, pitfalls, grammar drills + coach
-  api/routes_srs.py        SRS decks / due cards / review
-  api/routes_prep.py       PREP scenario + evaluate
-  api/routes_assist.py     declutter, writing-correct, voice, radio, speech, monologue
-  api/routes_plan.py       weekly study plan
-  api/deps.py              shared dependencies (rate limiting)
-  core/config.py           typed settings (pydantic-settings)
-  core/db.py               aiosqlite (WAL) + explicit write transactions
-  core/timeutil.py         canonical UTC timestamp helpers
-  core/cache.py            async TTL cache
-  core/ratelimit.py        sliding-window rate limiter
-  core/budget.py           daily spend budget
-  core/ws_manager.py       connection registry + broadcaster + heartbeat
-  schemas/                 strict Pydantic request/response models
+  core/db.py               aiosqlite (WAL) + versioned migrations
+  api/                     routers: content, learning, srs, prep, assist, plan,
+                           websocket, radio_ws, routes_pt (Português), routes_bible
+  schemas/                 Pydantic models incl. pt.py and bible.py (study schema)
   services/
-    srs_engine.py          pure SM-2 (EF floor 1.3)
-    srs.py, srs_seed.py    SRS persistence + seed deck
-    llm.py                 Groq client with retry + JSON mode + budget
-    deepgram.py            Deepgram pre-recorded STT client
-    deepgram_live.py       Deepgram live (streaming) STT session
-    whisper.py             local whisper.cpp STT client (when STT_PROVIDER=whisper)
-    rss.py                 feed fetch/parse (offloaded to a thread)
-    news.py, podcast.py    content pipelines (cached, graceful degrade)
-    prep.py, declutter.py, voice.py, radio.py, connectors.py
-    dictionary.py          click-to-translate lookup (cached)
-    quiz.py, register.py   comprehension quiz + register rewrite
-    irregular_verbs.py     curated irregular verbs (deterministic, no LLM)
-    minimal_pairs.py       curated minimal pairs + pitfalls (deterministic, no LLM)
-    grammar_rules.py       curated Rule-of-the-Day (deterministic, no LLM)
-    grammar_drill.py       LLM phrasal/collocation/use-of-English/word-form drills + coach
-    writing.py             LLM grammar/usage correction
-    monologue.py           curated monologue topics + LLM feedback
-    plan.py                LLM weekly study plan
+    srs.py srs_engine.py srs_seed.py pt_seed.py   SRS (SM-2) + per-cockpit seeding
+    llm.py deepgram*.py whisper.py                external inference clients
+    news.py podcast.py rss.py radio.py dictionary.py   English content pipelines
+    word_of_day.py grammar_rules.py grammar_drill.py minimal_pairs.py irregular_verbs.py
+    pt_content.py pt_generators.py pt_news.py     Português cockpit (curated + LLM)
+    bible_books.py bible_parser.py bible_provider.py bible_studies.py   Bíblia cockpit
 static/
-  css/cockpit.css          dark-mode CSS Grid, accessible
-  js/main.js               boots WS + event bus + modules
-  js/ws_client.js          auto-reconnecting WebSocket client (1s→15s backoff)
-  js/lib/*.js              pure logic: timer, speech, srs, text, connectors, highlight, shadow, drill, word_extract, audio, pronounce, api, bus, backoff, dom
-  js/components/*.js       one module per feature (word_of_day, news, podcast, radio, srs_deck, prep_drill, grammar, declutter, voice, speech_coach, dictionary, shadowing, register, weekly_plan, stats)
-templates/index.html       kiosk dashboard shell (13 cards)
-deploy/Caddyfile           optional LAN exposure with basic auth
-tests/backend              pytest (175 tests)
-tests/frontend             node:test (55 tests)
+  css/main.css css/cockpit.css
+  js/main.js               boot: cockpit switcher + lazy per-cockpit module mount
+  js/lib/                  api, bus, dom, cockpit (identity), bible_render, …
+  js/components/           one module per card (word_of_day, news, srs_deck, pt_*,
+                           bible_study, bible_history, bible_books, …)
+templates/index.html       shell: cockpit switcher + one nav/panel set per cockpit
+tests/                     pytest (backend) + node:test (frontend)
 ```
 
 ## API
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/healthz` | liveness + `llm_configured`/`stt_provider`/`whisper_configured` |
-| GET | `/healthz/external` | live Groq/Deepgram reachability probe |
-| WS  | `/ws` | heartbeat (`ping`/`pong`) + broadcast bus |
-| WS  | `/ws/radio` | live STT relay (browser PCM upload → Deepgram) |
-| GET | `/api/word-of-day` | deterministic daily rotation (`?date=` optional) |
-| GET | `/api/word-of-day/entries` | curated archive list |
-| GET | `/api/news` | 3 headlines + vocab (LLM vocab when key set) |
-| GET | `/api/podcast-digest` | brief + key terms + episode audio |
-| GET | `/api/dictionary/lookup?word=` | click-to-translate (cached 24 h) |
-| GET | `/api/srs/decks` | decks with due counts |
-| GET | `/api/srs/decks/{id}/due` | review cards due (seen before) |
-| GET | `/api/srs/decks/{id}/new` | unseen cards (introduce up to `new_cards_per_day`) |
-| POST | `/api/srs/cards` | add a card |
-| POST | `/api/srs/review` | grade a card (`{card_id, grade: 1..4}`) |
-| GET | `/api/srs/stats` | due/new/total/reviews-today/streak/daily-goal |
-| GET | `/api/srs/export` | JSON backup of decks + cards |
-| GET | `/api/prep/scenario` | random workplace scenario |
-| POST | `/api/prep/evaluate` | PREP feedback + BLUF rewrite |
-| POST | `/api/declutter` | word reduction + verb upgrades + tone |
-| POST | `/api/voice/turn` | roleplay partner turn |
-| POST | `/api/quiz` | comprehension MCQ from text |
-| POST | `/api/register/rewrite` | rewrite a sentence in a target register |
-| GET | `/api/radio/stations` | live stream URLs |
-| POST | `/api/radio/transcribe` | Deepgram transcript + connector highlights |
-| GET | `/api/speech/connectors` | discourse-connector list |
-| GET | `/api/grammar/irregular-verbs` | curated irregular-verb list (deterministic) |
-| GET | `/api/grammar/drill?kind=` | LLM cloze MCQ (`phrasal_verb`/`collocation`/`use_of_english`) |
-| GET | `/api/grammar/word-forms` | LLM gap-fill (correct derived form) |
-| GET | `/api/grammar/rule-of-day` | deterministic daily grammar rule (`?date=` optional) |
-| POST | `/api/grammar/coach` | free-form grammar question → LLM answer |
-| GET | `/api/pronunciation/minimal-pairs` | curated minimal pairs (deterministic) |
-| GET | `/api/pronunciation/pitfalls` | curated Spanish-speaker pitfalls (deterministic) |
-| POST | `/api/writing/correct` | grammar/usage correction + per-error explanations |
-| GET | `/api/speech/topics` | curated monologue topics |
-| POST | `/api/speech/monologue/evaluate` | LLM speaking feedback (4 scores + model answer) |
-| POST | `/api/plan/weekly` | LLM seven-day study plan |
+| GET | `/healthz` | liveness + `llm_configured`/`bible_configured`/`stt_provider`/… |
+| WS  | `/ws`, `/ws/radio` | broadcast/heartbeat bus; live STT relay |
+| GET | `/api/word-of-day`, `/entries`, `/random` | English word of the day |
+| GET | `/api/news`, `/api/podcast-digest`, `/api/dictionary/lookup?word=` | English content |
+| GET | `/api/srs/decks?cockpit=`, `/stats?cockpit=`, `/decks/{id}/new`, `/due` | SRS per cockpit (default `en`) |
+| POST | `/api/srs/cards?cockpit=`, `/api/srs/review` | add card (supports `l1_hint`) / grade |
+| GET | `/api/prep/scenario`, `/api/grammar/*`, `/api/pronunciation/*`, `/api/speech/*`, `/api/radio/*` | English drills & coaches (LLM where noted) |
+| POST | `/api/prep/evaluate`, `/api/declutter`, `/api/voice/turn`, `/api/quiz`, `/api/register/rewrite`, `/api/writing/correct`, `/api/plan/weekly`, `/api/grammar/coach` | LLM endpoints |
+| GET | `/api/pt/word-of-day(/-random)`, `/api/pt/news` | Português |
+| GET | `/api/pt/grammar/rules`, `/rule-of-day`, `/rule-random`, `/pronunciation/minimal-pairs`, `/pitfalls`, `/practice/sentence` | Português |
+| POST | `/api/pt/grammar/coach` | Português LLM coach |
+| GET | `/api/bible/books`, `/api/bible/passage?reference=` | Bíblia registry + RVR text |
+| POST | `/api/bible/study` | six-section exegesis (LLM), saved |
+| GET/DELETE | `/api/bible/studies[/{id}]` | study history |
 
-LLM/Deepgram "not configured" → `503`; upstream failure → `502`; bad input → `422`.
+LLM/Bible/Deepgram "not configured" → `503`; upstream failure → `502`; bad
+reference/input → `422`.
 
-## Run locally
+## Run locally (macOS)
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m app
+cp deploy/env.example .env           # then add LLM_API_KEY (+ BIBLE_API_KEY for Bíblia)
+.venv/bin/python -m app              # https://localhost:8000 (TLS when configured)
 ```
 
-Optionally bundle/minify the frontend (served automatically when present):
+Bundle the frontend (optional; served from source when absent):
 
 ```bash
-npm install
-npm run build      # outputs static/dist/; `npm run dev` starts a HMR dev server
+npm ci
+npm run build                        # outputs static/dist/
+npm run dev                          # HMR dev server on :5173 (proxies /api and /ws)
 ```
 
-Point a browser at `http://localhost:8000` (or `https://localhost:8000` when TLS is
-configured). Remote access via SSH tunnel:
+Run as a **macOS LaunchAgent** on `https://localhost:8090` (without touching the
+legacy English agent on :8000):
 
 ```bash
-ssh -L 8000:localhost:8000 pi@host
+PORT=8090 HOST=127.0.0.1 ./deploy/macos/install-logos-agent.sh
+open https://localhost:8090
 ```
 
 ## Configuration
@@ -142,88 +113,45 @@ Create a `.env` (gitignored) next to the app. Values are read once at startup.
 | Env var | Default | Notes |
 |---|---|---|
 | `COCKPIT_DB` | `data/cockpit.db` | SQLite location. |
-| `LLM_API_KEY` | *(empty)* | Groq key; enables all generative features (drills, coach, writing, monologue, plan, etc.). |
+| `LLM_API_KEY` | *(empty)* | Groq key; enables all generative features. |
 | `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | OpenAI-compatible endpoint. |
 | `LLM_MODEL` | `qwen/qwen3.8-27b` | Any JSON-mode-capable model on your Groq account. |
-| `LLM_TIMEOUT_SECONDS` | `60` | Per-request LLM timeout. |
-| `LLM_MAX_RETRIES` | `2` | Bounded retries on 5xx/429/transport. |
-| `DEEPGRAM_API_KEY` | *(empty)* | Enables `/api/radio/transcribe`. |
-| `DEEPGRAM_MODEL` | `nova-2` | Deepgram model. |
-| `DEEPGRAM_TIMEOUT_SECONDS` | `300` | Transcription timeout (long audio). |
-| `DEEPGRAM_MAX_RETRIES` | `2` | Retries on 5xx/429/transport. |
-| `DEEPGRAM_ALLOWED_HOSTS` | `[]` | JSON list; if set, restrict `audio_url` hosts. |
-| `CORS_ORIGINS` | `[]` | JSON list; empty = same-origin only (kiosk default). |
-| `CONTENT_CACHE_TTL_SECONDS` | `600` | News/podcast cache TTL. |
-| `RATE_LIMIT_PER_MINUTE` | `30` | Per-IP rate limit on LLM/STT endpoints. |
-| `LLM_DAILY_LIMIT` | `1000` | Max LLM calls per 24h (0 = unlimited). |
-| `DEEPGRAM_DAILY_LIMIT` | `200` | Max Deepgram calls per 24h (0 = unlimited). |
+| `LLM_DAILY_LIMIT` | `1000` | Max LLM calls per 24 h (0 = unlimited). |
+| `DEEPGRAM_API_KEY` | *(empty)* | Enables transcription/roleplay audio. |
 | `STT_PROVIDER` | `deepgram` | Pre-recorded STT backend: `deepgram` or `whisper` (local). |
-| `WHISPER_BASE_URL` | `http://localhost:8080` | whisper.cpp server base URL (used when `STT_PROVIDER=whisper`). |
-| `WHISPER_TIMEOUT_SECONDS` | `300` | Transcription timeout. |
-| `WHISPER_MAX_RETRIES` | `2` | Retries on 5xx/transport. |
-| `TLS_CERTFILE` | *(empty)* | TLS cert path (from `deploy/macos/certs.sh`); enables HTTPS when set with `TLS_KEYFILE`. |
-| `TLS_KEYFILE` | *(empty)* | TLS private-key path. |
-| `WS_MAX_CONNECTIONS` | `100` | WebSocket connection cap. |
-| `NEW_CARDS_PER_DAY` | `10` | New SRS cards introduced per session. |
-| `DAILY_REVIEW_GOAL` | `20` | Daily review goal for the header ring. |
+| `WHISPER_BASE_URL` | `http://localhost:8080` | whisper.cpp server base URL. |
+| `BIBLE_API_KEY` | *(empty)* | API.Bible key; enables the Bíblia cockpit text. |
+| `BIBLE_API_BASE_URL` | `https://api.scripture.api.bible/v1` | API.Bible base URL. |
+| `BIBLE_DEFAULT_TRANSLATION` | `RVR09` | Spanish translation label (RVR09 on API.Bible; RVR60 needs another source). |
+| `BIBLE_API_CACHE_TTL_SECONDS` | `604800` | Passage cache TTL (7 days). |
+| `RATE_LIMIT_PER_MINUTE` | `30` | Per-IP rate limit on LLM/Bible/STT endpoints. |
+| `HOST` / `PORT` | `127.0.0.1` / `8000` | Bind address/port. |
+| `TLS_CERTFILE` / `TLS_KEYFILE` | *(empty)* | Enable HTTPS (macOS `deploy/macos/certs.sh`). |
 
-Feed URLs are defined as constants in `app/services/news.py`, `podcast.py`, and
-`radio.py` — edit and redeploy to change them.
+News/podcast/radio feeds and curated PT-BR and book-profile data are code
+constants in `app/services/*` — edit and redeploy to change them.
 
 ## Tests
 
 ```bash
-.venv/bin/python -m pytest -q    # backend (175)
-npm test                          # frontend pure logic (55)
+.venv/bin/python -m pytest -q    # backend (237)
+npm test                          # frontend pure logic (64)
 ```
 
 ## Security
 
 The app has **no application-level authentication** and binds to **127.0.0.1**
-by default, so only the local kiosk (or an SSH tunnel) can reach it. Remote
-access is intended via SSH:
+by default. Remote access is via SSH tunnel or a reverse proxy (Caddy with basic
+auth) — never expose the app directly to the public internet. Spending is capped
+by rate limiting and daily budgets; API.Bible passages are cached locally.
 
-```bash
-ssh -L 8000:localhost:8000 pi@host   # then browse http://localhost:8000
-```
+## Deploy
 
-For LAN-wide browsing, use `deploy/Caddyfile` (Caddy with basic auth in front of
-`127.0.0.1:8000`). Spending is capped by `RATE_LIMIT_PER_MINUTE`, `LLM_DAILY_LIMIT`,
-and `DEEPGRAM_DAILY_LIMIT`. Do not expose the app directly to the public internet.
+- **macOS:** LaunchAgent (`deploy/macos/install-logos-agent.sh`, port 8090) or
+  run `python -m app` directly; HTTPS via `deploy/macos/certs.sh`.
+- **Raspberry Pi:** `deploy.sh` is test-gated and rsyncs the tree (excluding
+  `.venv/`, `data/`, `tests/`, secrets) to the Pi, installs/updates the systemd
+  unit (`deploy/english-cockpit.service`), and waits for `/healthz`.
 
-## Deploy to the Pi
-
-One-time setup on the Pi: create the app dir, add secrets, and install the unit.
-
-```bash
-# on the Pi (once)
-mkdir -p /home/pi/english-cockpit
-cp deploy/env.example /home/pi/english-cockpit/.env   # then edit the keys
-sudo cp deploy/english-cockpit.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable english-cockpit
-```
-
-Then deploy from your Mac:
-
-```bash
-PI_HOST=raspberrypi.local INSTALL_DEPS=1 INSTALL_UNIT=1 ./deploy.sh   # first time
-./deploy.sh                                                          # afterwards
-```
-
-`deploy.sh` refuses to proceed unless both test gates pass, then rsyncs the tree
-(excluding `.venv/`, `data/`, `tests/`, and secrets), restarts the unit, and
-waits up to 15s for `/healthz`. `INSTALL_DEPS=1` builds the venv on the Pi;
-`INSTALL_UNIT=1` installs/enables the systemd unit.
-
-Start the kiosk on the Pi (or add it to the Pi's autostart):
-
-```bash
-deploy/kiosk.sh
-```
-
-## Kiosk note (RAM)
-
-`deploy/kiosk.sh` launches Chromium in kiosk mode with memory-friendly flags
-(`--kiosk --noerrdialogs --disable-gpu --no-sandbox`). Override the browser
-with `BROWSER=chromium-browser` if needed.
+This project started as [English Cockpit OS](https://github.com/emudevcc/English-Cockpit-OS)
+(the English cockpit above); the English product remains a separate public repo.
