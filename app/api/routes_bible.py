@@ -47,14 +47,14 @@ async def passage(
     try:
         ref = parse_reference(reference, translation=label)
         provider: BibleTextProvider = request.app.state.bible_provider
-        text = await provider.fetch_text(ref, label)
+        text, copyright = await provider.fetch_text_with_copyright(ref, label)
     except BibleReferenceError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except BibleNotConfiguredError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except BibleUpstreamError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    return PassageText(ref=ref, passage_text=text)
+    return PassageText(ref=ref, passage_text=text, copyright=copyright)
 
 
 @router.post(

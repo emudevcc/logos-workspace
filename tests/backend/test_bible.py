@@ -85,6 +85,7 @@ def make_bible_handler(passage_content: str = "texto del pasaje"):
                         "content": passage_content,
                         "reference": "Romanos 8:31-39",
                         "verseCount": 9,
+                        "copyright": "Mock © 2026 public domain",
                     }
                 },
             )
@@ -136,8 +137,8 @@ def test_passage_id_building() -> None:
 async def test_bible_db_cache_round_trip(database: Database) -> None:
     cache = BibleDbCache(database, ttl_seconds=7 * 86400)
     assert await cache.get("b1", "ROM.8") is None
-    await cache.put("b1", "ROM.8", "texto")
-    assert await cache.get("b1", "ROM.8") == "texto"
+    await cache.put("b1", "ROM.8", "texto", "Mock ©")
+    assert await cache.get("b1", "ROM.8") == ("texto", "Mock ©")
 
 
 async def test_provider_fetches_and_caches(database: Database) -> None:
@@ -152,9 +153,13 @@ async def test_provider_fetches_and_caches(database: Database) -> None:
     )
     ref = parse_reference("Rm 8:31-39", translation="RVR09")
     first = await provider.fetch_text(ref, "RVR09")
-    second = await provider.fetch_text(ref, "RVR09")
     assert first == "texto del pasaje"
-    assert second == "texto del pasaje"  # served from the SQLite cache
+    # Copyright survives both the live fetch and the SQLite cache hit.
+    content, copyright_first = await provider.fetch_text_with_copyright(ref, "RVR09")
+    content, copyright_second = await provider.fetch_text_with_copyright(ref, "RVR09")
+    assert content == "texto del pasaje"
+    assert copyright_first == "Mock © 2026 public domain"
+    assert copyright_second == "Mock © 2026 public domain"
 
 
 async def test_provider_requires_key() -> None:
@@ -238,7 +243,9 @@ def test_study_endpoint_flow_with_key(
 
             passage = client.get("/api/bible/passage", params={"reference": "Rm 8:31-39"})
             assert passage.status_code == 200
-            assert passage.json()["passage_text"] == "texto do capítulo"
+            body_passage = passage.json()
+            assert body_passage["passage_text"] == "texto do capítulo"
+            assert body_passage["copyright"] == "Mock © 2026 public domain"
 
             created = client.post("/api/bible/study", json={"reference": "Rm 8:31-39"})
             assert created.status_code == 201

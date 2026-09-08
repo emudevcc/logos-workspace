@@ -90,6 +90,10 @@ MIGRATIONS: tuple[str, ...] = (
         created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     );
     """,
+    # v5: keep the API.Bible attribution/copyright alongside cached passages.
+    """
+    ALTER TABLE bible_cache ADD COLUMN copyright TEXT NOT NULL DEFAULT '';
+    """,
 )
 
 

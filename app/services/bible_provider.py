@@ -47,27 +47,48 @@ class BibleDbCache:
         self._db = db
         self._ttl = ttl_seconds
 
-    async def get(self, bible_id: str, passage_id: str) -> str | None:
+    async def get(self, bible_id: str, passage_id: str) -> tuple[str, str] | None:
         cutoff = iso_utc(utc_now() - timedelta(seconds=self._ttl))
         cursor = await self._db.connection.execute(
-            "SELECT content FROM bible_cache "
+            "SELECT content, copyright FROM bible_cache "
             "WHERE bible_id = ? AND passage_id = ? AND fetched_at >= ?",
             (bible_id, passage_id, cutoff),
         )
         row = await cursor.fetchone()
-        return str(row["content"]) if row is not None else None
+        if row is None:
+            return None
+        return str(row["content"]), str(row["copyright"])
 
-    async def put(self, bible_id: str, passage_id: str, content: str) -> None:
+    async def put(
+        self, bible_id: str, passage_id: str, content: str, copyright: str = ""
+    ) -> None:
         async with self._db.transaction() as conn:
             await conn.execute(
-                "INSERT OR REPLACE INTO bible_cache (bible_id, passage_id, content) "
-                "VALUES (?, ?, ?)",
-                (bible_id, passage_id, content),
+                "INSERT OR REPLACE INTO bible_cache "
+                "(bible_id, passage_id, content, copyright) VALUES (?, ?, ?, ?)",
+                (bible_id, passage_id, content, copyright),
             )
 
 
 def _key(value: str) -> str:
     return "".join(char.lower() for char in value if char.isalnum())
+
+
+def _server_message(response: httpx.Response) -> str:
+    """Extract the API.Bible error message from an error body.
+
+    API.Bible error bodies look like
+    ``{"statusCode": 400, "error": "Bad Request", "message": "..."}``.
+    """
+    try:
+        payload = response.json()
+    except ValueError:
+        return ""
+    if isinstance(payload, dict):
+        message = payload.get("message")
+        if isinstance(message, str) and message:
+            return message
+    return ""
 
 
 def passage_id_for(ref: PassageRef) -> str:
@@ -161,6 +182,17 @@ class BibleTextProvider:
 
     async def fetch_text(self, ref: PassageRef, translation: str = "") -> str:
         """Return the plain text for a parsed pericope (cached when possible)."""
+        content, _copyright = await self.fetch_text_with_copyright(ref, translation)
+        return content
+
+    async def fetch_text_with_copyright(
+        self, ref: PassageRef, translation: str = ""
+    ) -> tuple[str, str]:
+        """Return (passage text, attribution/copyright) for a pericope.
+
+        Attribution is only available on a live fetch; cached hits return an
+        empty copyright string (the caller may show its own license note).
+        """
         if not self.enabled:
             raise BibleNotConfiguredError("La clave de la API de Bible no está configurada")
         bible_id = await self.resolve_bible_id(translation or self._default_translation)
@@ -169,12 +201,13 @@ class BibleTextProvider:
         if self._cache is not None:
             cached = await self._cache.get(bible_id, passage_id)
             if cached is not None:
-                return cached
+                content, copyright = cached
+                return content, copyright
 
-        content = await self._remote(bible_id, passage_id)
+        content, copyright = await self._remote(bible_id, passage_id)
         if self._cache is not None:
-            await self._cache.put(bible_id, passage_id, content)
-        return content
+            await self._cache.put(bible_id, passage_id, content, copyright)
+        return content, copyright
 
     def _loader(self, language: str) -> Any:
         """Return a zero-argument async loader bound to one catalog language."""
@@ -191,8 +224,10 @@ class BibleTextProvider:
             timeout=20.0,
         )
         if response.status_code != 200:
+            detail = _server_message(response)
             raise BibleUpstreamError(
                 f"API.Bible catalog request failed ({response.status_code}) for {language}"
+                f"{f': {detail}' if detail else ''}"
             )
         try:
             entries = response.json().get("data", [])
@@ -212,7 +247,7 @@ class BibleTextProvider:
             )
         return catalog
 
-    async def _remote(self, bible_id: str, passage_id: str) -> str:
+    async def _remote(self, bible_id: str, passage_id: str) -> tuple[str, str]:
         url = f"{self._base_url}/bibles/{bible_id}/passages/{passage_id}"
         try:
             response = await self._client.get(
@@ -224,14 +259,17 @@ class BibleTextProvider:
         except httpx.HTTPError as exc:
             raise BibleUpstreamError(f"API.Bible passage request failed: {exc}") from exc
         if response.status_code != 200:
+            detail = _server_message(response)
             raise BibleUpstreamError(
                 f"API.Bible passage request failed ({response.status_code}) for {passage_id}"
+                f"{f': {detail}' if detail else ''}"
             )
         try:
             data = response.json().get("data") or {}
             content = data.get("content")
+            copyright = data.get("copyright") or ""
         except ValueError as exc:  # pragma: no cover - defensive
             raise BibleUpstreamError("API.Bible returned invalid JSON for the passage") from exc
         if not isinstance(content, str) or not content.strip():
             raise BibleUpstreamError(f"API.Bible returned no text for {passage_id}")
-        return content
+        return content, str(copyright)
