@@ -29,7 +29,7 @@ at startup. Copy `deploy/env.example` and fill in the keys.
 | `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | OpenAI-compatible endpoint |
 | `LLM_MODEL` | `qwen/qwen3.8-27b` | model on your Groq account |
 | `LLM_TIMEOUT_SECONDS` | `60` | per-request LLM timeout |
-| `LLM_MAX_RETRIES` | `2` | retries on 5xx/429/transport |
+| `LLM_MAX_RETRIES` | `3` | retries on 5xx/429/transport |
 | `LLM_DAILY_LIMIT` | `1000` | max LLM calls / 24 h (0 = unlimited) |
 | `DEEPGRAM_API_KEY` | *(empty)* | enables transcription |
 | `DEEPGRAM_MODEL` | `nova-2` | Deepgram model |

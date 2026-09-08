@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     )
     llm_model: str = Field(default=DEFAULT_LLM_MODEL, validation_alias="LLM_MODEL")
     llm_timeout_seconds: float = Field(default=60.0, gt=0.0)
-    llm_max_retries: int = Field(default=2, ge=0)
+    llm_max_retries: int = Field(default=3, ge=0)
     llm_daily_limit: int = Field(default=1000, ge=0)
 
     deepgram_api_key: str = Field(default="", validation_alias="DEEPGRAM_API_KEY")

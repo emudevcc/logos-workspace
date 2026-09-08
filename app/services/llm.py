@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import random
+from datetime import UTC
 from typing import Any, Protocol
 
 import httpx
@@ -122,6 +123,10 @@ class LLMClient:
                 continue
             if response.status_code == 429 or response.status_code >= 500:
                 last_error = LLMError(f"upstream {response.status_code}")
+                if response.status_code == 429:
+                    retry_after = _retry_after_seconds(response)
+                    if retry_after is not None and retry_after <= 15:
+                        await asyncio.sleep(retry_after)
                 await response.aread()
                 continue
             if response.status_code != 200:
@@ -143,3 +148,26 @@ def _extract_content(data: dict[str, Any]) -> str:
     if not isinstance(content, str):
         raise LLMError(f"LLM content is not a string: {content!r}")
     return content
+
+def _retry_after_seconds(response: Any) -> float | None:
+    """Seconds suggested by a 429 'Retry-After' header (delta-seconds or date).
+
+    Returns ``None`` when the header is absent or unparsable so the caller can
+    fall back to its normal backoff.
+    """
+    raw = response.headers.get("retry-after") if hasattr(response, "headers") else None
+    if raw is None:
+        return None
+    raw = raw.strip()
+    if not raw:
+        return None
+    if raw.isdigit():
+        return float(raw)
+    try:  # HTTP-date form
+        from datetime import datetime
+        from email.utils import parsedate_to_datetime
+
+        moment = parsedate_to_datetime(raw)
+        return max(0.0, (moment - datetime.now(UTC)).total_seconds())
+    except (TypeError, ValueError):
+        return None

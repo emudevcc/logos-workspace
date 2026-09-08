@@ -35,6 +35,8 @@ const I18N = {
     saved: (id) => `Estudio guardado en el historial (nº ${id}).`,
     regenerated: "Se generó de nuevo en el idioma seleccionado.",
     failed: (message) => `No pude estudiar el pasaje: ${message}`,
+    rateLimited: "El servicio de IA está saturado en este momento (429). Espera unos segundos y vuelve a intentarlo.",
+    retry: "Reintentar",
     versionPrefix: "Texto del pasaje",
     versionSuffix: "explicación en español",
     note:
@@ -58,6 +60,8 @@ const I18N = {
     saved: (id) => `Study saved to history (#${id}).`,
     regenerated: "Regenerated in the selected language.",
     failed: (message) => `Could not study the passage: ${message}`,
+    rateLimited: "The AI service is rate-limited right now (429). Wait a few seconds and try again.",
+    retry: "Try again",
     versionPrefix: "Passage text",
     versionSuffix: "explanation in English",
     note:
@@ -81,6 +85,8 @@ const I18N = {
     saved: (id) => `Estudo salvo no histórico (nº ${id}).`,
     regenerated: "Regenerado no idioma selecionado.",
     failed: (message) => `Não consegui estudar a passagem: ${message}`,
+    rateLimited: "O serviço de IA está sobrecarregado neste momento (429). Aguarde alguns segundos e tente novamente.",
+    retry: "Tentar novamente",
     versionPrefix: "Texto da passagem",
     versionSuffix: "explicação em português",
     note:
@@ -106,12 +112,16 @@ export function init(slot) {
   });
   const versionEl = h("p", { class: "bible-note study-version" });
   const noteEl = h("p", { class: "bible-note" });
+  const retryBtn = h("button", { type: "button", class: "chip" });
+  retryBtn.hidden = true;
+  retryBtn.addEventListener("click", () => run());
   const chipsEl = h("div", { class: "chips" });
 
   let busy = false;
   let language = readLang();
   let prefs = { ...FALLBACK_PREFS };
   let lastReference = null;
+  let lastFailAt = 0;
 
   function t() {
     return I18N[language] || I18N.es;
@@ -177,12 +187,15 @@ export function init(slot) {
         persistLang(item.key);
         renderLangBar();
         applyChrome();
-        // If a study is already displayed, regenerate it in the new language.
-        if (lastReference && !busy) {
+        // If a study is already displayed, regenerate it in the new language —
+        // unless the last run just failed with a rate limit (no auto-storms).
+        const coolingDown = Date.now() - lastFailAt < 8000;
+        if (lastReference && !busy && !coolingDown) {
           input.value = lastReference;
           run(true);
         } else {
-          statusEl.textContent = "";
+          statusEl.textContent = coolingDown ? t().rateLimited : "";
+          retryBtn.hidden = !coolingDown;
         }
       });
       langBar.append(button);
@@ -220,6 +233,7 @@ export function init(slot) {
     busy = true;
     lastReference = reference;
     runBtn.disabled = true;
+    retryBtn.hidden = true;
     runBtn.textContent = t().busy;
     clear(out);
     statusEl.textContent = "";
@@ -234,7 +248,14 @@ export function init(slot) {
         ? `${t().saved(record.id)} ${t().regenerated}`
         : t().saved(record.id);
     } catch (error) {
-      statusEl.textContent = t().failed(error.message);
+      const limited = /\b429\b/.test(error.message);
+      if (limited) lastFailAt = Date.now();
+      statusEl.textContent = limited ? t().rateLimited : t().failed(error.message);
+      if (!limited) retryBtn.hidden = true;
+      else {
+        retryBtn.textContent = t().retry;
+        retryBtn.hidden = false;
+      }
     } finally {
       busy = false;
       runBtn.disabled = false;
@@ -242,7 +263,7 @@ export function init(slot) {
     }
   }
 
-  slot.append(introEl, langBar, versionEl, input, h("div", { class: "chips" }, runBtn), statusEl, out);
+  slot.append(introEl, langBar, versionEl, input, h("div", { class: "chips" }, runBtn, retryBtn), statusEl, out);
   slot.append(chipsEl, noteEl);
 
   renderLangBar();
