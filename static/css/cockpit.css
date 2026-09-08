@@ -888,3 +888,72 @@ button.primary:focus-visible,
 }
 .pt-dica { margin-top: 0.35rem; font-size: 0.85rem; opacity: 0.85; }
 .pt-tabs { margin-bottom: 0.6rem; }
+
+/* Logos Workspace M3: Bíblia cockpit */
+.study-input {
+  width: 100%;
+  background: var(--surface-1, #1e1e20);
+  color: inherit;
+  border: 1px solid var(--surface-2, #333);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  font: inherit;
+  margin-bottom: 0.4rem;
+}
+.bible-out { margin-top: 0.5rem; }
+.bible-ref { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.4rem; }
+.bible-text {
+  white-space: pre-wrap;
+  font-family: Georgia, "Iowan Old Style", serif;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  background: var(--surface-1, #161618);
+  margin-bottom: 0.4rem;
+}
+.bible-section-title {
+  margin: 1rem 0 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.82rem;
+  opacity: 0.85;
+}
+.bible-row { margin: 0.15rem 0; }
+.bible-label { font-weight: 600; }
+.bible-note { margin-top: 0.35rem; font-size: 0.85rem; opacity: 0.85; }
+.bible-principle {
+  font-weight: 700;
+  margin-top: 0.35rem;
+  font-family: Georgia, "Iowan Old Style", serif;
+}
+.bible-subtitle { margin: 0.6rem 0 0.2rem; font-weight: 600; }
+.bible-lexical,
+.bible-app {
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0;
+  margin: 0.2rem 0 0.4rem;
+}
+.bible-term { margin: 0; }
+.bible-history-list {
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0;
+}
+.bible-history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  border-block-end: 1px solid var(--surface-2, #333);
+  padding-bottom: 0.35rem;
+}
+.bible-history-meta { display: flex; flex-direction: column; }
+.bible-book-group { margin-bottom: 0.8rem; }
+.bible-book-list { list-style: none; padding: 0; display: grid; gap: 0.15rem; margin: 0; }
+.bible-book-row { padding: 0.1rem 0; }
+.bible-book-name { font-weight: 600; }

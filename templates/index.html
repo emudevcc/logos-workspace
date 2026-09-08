@@ -46,6 +46,14 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
             Estudo
           </button>
+          <button class="nav-item" type="button" data-view="bible-history" data-cockpit="bible">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Histórico
+          </button>
+          <button class="nav-item" type="button" data-view="bible-books" data-cockpit="bible">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
+            Livros
+          </button>
         </nav>
         <div class="app-sidebar-foot">
           <div class="cockpit-stats" id="cockpit-stats" aria-label="Progress"></div>
@@ -227,13 +235,34 @@
         <section class="app-view" data-view-panel="bible-study" data-cockpit="bible" hidden>
           <h2 class="view-title">Estudo Bíblico</h2>
           <div class="grid grid-cols-1 gap-4">
-            <section class="card bg-base-200 shadow-sm">
-              <div class="card-body p-6 gap-2">
-                <h3 class="card-title">Estudo Bíblico — em construção</h3>
-                <p class="text-sm opacity-75">
-                  O cockpit Bíblia chega em breve: exegese por passagem (RVR60), contexto
-                  histórico, análise lexical do original e aplicação prática.
-                </p>
+            <section class="card bg-base-200 shadow-sm" data-module="bible-study" aria-labelledby="bible-study-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="bible-study-title">Nova exegese por passagem</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="app-view" data-view-panel="bible-history" data-cockpit="bible" hidden>
+          <h2 class="view-title">Histórico</h2>
+          <div class="grid grid-cols-1 gap-4">
+            <section class="card bg-base-200 shadow-sm" data-module="bible-history" aria-labelledby="bible-history-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="bible-history-title">Estudos salvos</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="app-view" data-view-panel="bible-books" data-cockpit="bible" hidden>
+          <h2 class="view-title">Livros</h2>
+          <div class="grid grid-cols-1 gap-4">
+            <section class="card bg-base-200 shadow-sm" data-module="bible-books" aria-labelledby="bible-books-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="bible-books-title">Os 66 livros</h3>
+                <div data-slot></div>
               </div>
             </section>
           </div>

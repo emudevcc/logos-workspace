@@ -12,6 +12,9 @@ import {
   setActiveCockpit,
   setCockpitView,
 } from "./lib/cockpit.js";
+import * as bibleBooks from "./components/bible_books.js";
+import * as bibleHistory from "./components/bible_history.js";
+import * as bibleStudy from "./components/bible_study.js";
 import * as declutter from "./components/declutter.js";
 import * as dictionary from "./components/dictionary.js";
 import * as grammar from "./components/grammar.js";
@@ -54,6 +57,9 @@ const MODULES = {
   "pt-grammar": ptGrammar,
   "pt-pronuncia": ptPronuncia,
   "pt-frases": ptFrases,
+  "bible-study": bibleStudy,
+  "bible-history": bibleHistory,
+  "bible-books": bibleBooks,
 };
 
 let moduleCtx = null;
@@ -193,6 +199,9 @@ const MODULE_ICONS = {
   "pt-grammar": '<path d="M4 20V5l16-6v14M15 9 6 18"/><path d="M5 12l4 3"/>',
   "pt-pronuncia": '<path d="M14 3 6 14h5l-1 7 9-12h-6l1-6z"/>',
   "pt-frases": '<path d="M2 12h2l2-7 3 14 3-12 2 8 2-5h4"/>',
+  "bible-study": '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  "bible-history": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  "bible-books": '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
 };
 
 function setupMagic() {
