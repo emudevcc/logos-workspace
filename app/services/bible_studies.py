@@ -327,10 +327,11 @@ class BibleStudyService:
             }
         )
 
-    async def list_studies(self) -> list[StudySummary]:
+    async def list_studies(self, favorites_only: bool = False) -> list[StudySummary]:
+        where = "WHERE is_favorite = 1 " if favorites_only else ""
         cursor = await self._db.connection.execute(
-            "SELECT id, reference, translation, book_code, created_at "
-            "FROM studies ORDER BY id DESC LIMIT 100"
+            "SELECT id, reference, translation, book_code, created_at, is_favorite "
+            f"FROM studies {where}ORDER BY id DESC LIMIT 100"
         )
         rows = await cursor.fetchall()
         return [
@@ -340,6 +341,7 @@ class BibleStudyService:
                 translation=str(row["translation"]),
                 book_code=str(row["book_code"]),
                 created_at=str(row["created_at"]),
+                is_favorite=bool(row["is_favorite"]),
             )
             for row in rows
         ]
@@ -358,9 +360,19 @@ class BibleStudyService:
             translation=str(row["translation"]),
             book_code=str(row["book_code"]),
             created_at=str(row["created_at"]),
+            is_favorite=bool(row["is_favorite"]),
             passage_text=str(row["passage_text"]),
             report=report,
         )
+
+    async def set_favorite(self, study_id: int, favorite: bool) -> bool:
+        """Set the favorite flag on a saved study; False when the id is unknown."""
+        async with self._db.transaction() as conn:
+            cursor = await conn.execute(
+                "UPDATE studies SET is_favorite = ? WHERE id = ?",
+                (1 if favorite else 0, study_id),
+            )
+            return cursor.rowcount > 0
 
     async def delete_study(self, study_id: int) -> bool:
         async with self._db.transaction() as conn:

@@ -94,6 +94,10 @@ MIGRATIONS: tuple[str, ...] = (
     """
     ALTER TABLE bible_cache ADD COLUMN copyright TEXT NOT NULL DEFAULT '';
     """,
+    # v6: favorite flag on saved studies, toggled from history/Favoritos.
+    """
+    ALTER TABLE studies ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;
+    """,
 )
 
 

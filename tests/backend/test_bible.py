@@ -594,3 +594,187 @@ def test_study_route_maps_budget_exceeded_to_429(
     finally:
         get_settings.cache_clear()
         os.environ.pop("BIBLE_API_KEY", None)
+
+
+async def test_set_favorite_round_trip_and_filtering(database: Database) -> None:
+    """A starred study appears in favorites_only and carries the flag unfiltered."""
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler("texto")),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    service = BibleStudyService(database, FakeLLM(SAMPLE_REPORT), provider)
+    first = await service.create_study("Rm 8:31-39", translation="NTV", language="es")
+    second = await service.create_study("João 3:16", translation="NTV", language="es")
+
+    assert first.is_favorite is False
+    # Nothing is favorited yet.
+    assert await service.list_studies(favorites_only=True) == []
+
+    assert await service.set_favorite(first.id, True) is True
+
+    favorites = await service.list_studies(favorites_only=True)
+    assert [item.id for item in favorites] == [first.id]
+    # The second, unstarred study is excluded.
+    assert second.id not in [item.id for item in favorites]
+
+    # The flag must also show in the *unfiltered* list — a missing column in
+    # that method's explicit SELECT would silently report False here.
+    unfiltered = {item.id: item.is_favorite for item in await service.list_studies()}
+    assert unfiltered == {first.id: True, second.id: False}
+
+
+async def test_set_favorite_false_unstars(database: Database) -> None:
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler("texto")),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    service = BibleStudyService(database, FakeLLM(SAMPLE_REPORT), provider)
+    record = await service.create_study("Rm 8:31-39", translation="NTV", language="es")
+
+    await service.set_favorite(record.id, True)
+    assert [s.id for s in await service.list_studies(favorites_only=True)] == [record.id]
+
+    await service.set_favorite(record.id, False)
+    assert await service.list_studies(favorites_only=True) == []
+
+
+async def test_get_study_reports_favorite_flag(database: Database) -> None:
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler("texto")),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    service = BibleStudyService(database, FakeLLM(SAMPLE_REPORT), provider)
+    record = await service.create_study("Rm 8:31-39", translation="NTV", language="es")
+
+    assert (await service.get_study(record.id)).is_favorite is False  # type: ignore[union-attr]
+    await service.set_favorite(record.id, True)
+    assert (await service.get_study(record.id)).is_favorite is True  # type: ignore[union-attr]
+
+
+async def test_set_favorite_unknown_id_returns_false(database: Database) -> None:
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler("texto")),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    service = BibleStudyService(database, FakeLLM(SAMPLE_REPORT), provider)
+    assert await service.set_favorite(99999, True) is False
+
+
+def test_favorite_route_toggles_and_persists(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The endpoint round-trips and the flag survives a fresh GET (the SC)."""
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(
+            handler=make_bible_handler("texto"), llm=FakeLLM(SAMPLE_REPORT)
+        ) as client:
+            created = client.post("/api/bible/study", json={"reference": "Rm 8:31-39"})
+            assert created.status_code == 201
+            study_id = created.json()["id"]
+            assert created.json()["is_favorite"] is False
+
+            # Empty favorites before starring.
+            assert client.get(
+                "/api/bible/studies", params={"favorites_only": "true"}
+            ).json() == []
+
+            starred = client.post(
+                f"/api/bible/studies/{study_id}/favorite", json={"favorite": True}
+            )
+            assert starred.status_code == 200
+            assert starred.json()["is_favorite"] is True
+            assert starred.json()["report"]["core_principle"] == SAMPLE_REPORT["core_principle"]
+
+            # Persisted: a fresh GET (as after a page reload) still shows it.
+            history = client.get("/api/bible/studies").json()
+            assert [(item["id"], item["is_favorite"]) for item in history] == [(study_id, True)]
+            favorites = client.get(
+                "/api/bible/studies", params={"favorites_only": "true"}
+            ).json()
+            assert [item["id"] for item in favorites] == [study_id]
+
+            unstarred = client.post(
+                f"/api/bible/studies/{study_id}/favorite", json={"favorite": False}
+            )
+            assert unstarred.status_code == 200
+            assert unstarred.json()["is_favorite"] is False
+            assert client.get(
+                "/api/bible/studies", params={"favorites_only": "true"}
+            ).json() == []
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)
+
+
+def test_favorite_route_unknown_id_returns_404(client_factory: ClientFactory) -> None:
+    with client_factory(handler=make_bible_handler("texto")) as client:
+        response = client.post(
+            "/api/bible/studies/99999/favorite", json={"favorite": True}
+        )
+        assert response.status_code == 404
+        # Same message the file's other 404s use.
+        assert response.json()["detail"] == "Estudio no encontrado"
+
+
+def test_favorite_route_rejects_malformed_body(client_factory: ClientFactory) -> None:
+    """FavoriteRequest is extra=forbid, so only {"favorite": bool} is accepted.
+
+    Body validation runs before the route body, so the 422s don't need the
+    study to exist — the id here is deliberately arbitrary.
+    """
+    with client_factory(handler=make_bible_handler("texto")) as client:
+        # Missing the required field.
+        assert client.post("/api/bible/studies/1/favorite", json={}).status_code == 422
+        # An extra field is forbidden.
+        assert (
+            client.post(
+                "/api/bible/studies/1/favorite", json={"favorite": True, "id": 1}
+            ).status_code
+            == 422
+        )
+        # A non-coercible value for the flag (note: Pydantic's lax mode does
+        # coerce "yes"/"true" to a bool, so those legitimately reach the route).
+        assert (
+            client.post(
+                "/api/bible/studies/1/favorite", json={"favorite": {"nested": 1}}
+            ).status_code
+            == 422
+        )
+
+
+def test_studies_list_favorites_only_defaults_to_all(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Omitting favorites_only keeps the unfiltered history behavior."""
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(
+            handler=make_bible_handler("texto"), llm=FakeLLM(SAMPLE_REPORT)
+        ) as client:
+            first = client.post("/api/bible/study", json={"reference": "Rm 8:31-39"}).json()
+            second = client.post("/api/bible/study", json={"reference": "João 3:16"}).json()
+            client.post(f"/api/bible/studies/{first['id']}/favorite", json={"favorite": True})
+
+            ids = [item["id"] for item in client.get("/api/bible/studies").json()]
+            assert ids == [second["id"], first["id"]]  # newest first, both present
+            assert [item["id"] for item in client.get(
+                "/api/bible/studies", params={"favorites_only": "false"}
+            ).json()] == [second["id"], first["id"]]
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)

@@ -11,6 +11,7 @@ from app.api.deps import rate_limited
 from app.schemas.bible import (
     BiblePrefs,
     BookProfile,
+    FavoriteRequest,
     PassageText,
     StudyRecord,
     StudyRequest,
@@ -137,9 +138,13 @@ async def create_study(payload: StudyRequest, request: Request) -> StudyRecord:
 
 
 @router.get("/studies", response_model=list[StudySummary])
-async def list_studies(request: Request) -> list[StudySummary]:
+async def list_studies(
+    request: Request,
+    favorites_only: bool = Query(default=False),
+) -> list[StudySummary]:
+    """Saved-study history; ``favorites_only`` narrows it to starred studies."""
     service: BibleStudyService = request.app.state.bible_studies
-    return await service.list_studies()
+    return await service.list_studies(favorites_only=favorites_only)
 
 
 @router.get("/studies/{study_id}", response_model=StudyRecord)
@@ -157,6 +162,21 @@ async def delete_study(study_id: int, request: Request) -> None:
     deleted = await service.delete_study(study_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Estudio no encontrado")
+
+
+@router.post("/studies/{study_id}/favorite", response_model=StudyRecord)
+async def set_favorite(
+    study_id: int, payload: FavoriteRequest, request: Request
+) -> StudyRecord:
+    """Set (or clear) the favorite flag on a saved study."""
+    service: BibleStudyService = request.app.state.bible_studies
+    updated = await service.set_favorite(study_id, payload.favorite)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Estudio no encontrado")
+    record = await service.get_study(study_id)
+    if record is None:  # pragma: no cover - defensive; it was just updated
+        raise HTTPException(status_code=404, detail="Estudio no encontrado")
+    return record
 
 
 @router.get("/translations", response_model=list[TranslationInfo])

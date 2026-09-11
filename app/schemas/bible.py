@@ -97,11 +97,18 @@ class StudySummary(BaseModel):
     translation: str
     book_code: str
     created_at: str
+    is_favorite: bool = False
 
 
 class StudyRecord(StudySummary):
     passage_text: str
     report: BibleStudy
+
+
+class FavoriteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    favorite: bool
 
 
 class BookProfile(BaseModel):
