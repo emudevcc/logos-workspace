@@ -50,6 +50,10 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Historia
           </button>
+          <button class="nav-item" type="button" data-view="bible-favorites" data-cockpit="bible">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Favoritos
+          </button>
           <button class="nav-item" type="button" data-view="bible-books" data-cockpit="bible">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
             Libros
@@ -250,6 +254,18 @@
             <section class="card bg-base-200 shadow-sm" data-module="bible-history" aria-labelledby="bible-history-title">
               <div class="card-body p-5 gap-2">
                 <h3 class="card-title" id="bible-history-title">Estudios guardados</h3>
+                <div data-slot></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="app-view" data-view-panel="bible-favorites" data-cockpit="bible" hidden>
+          <h2 class="view-title">Favoritos</h2>
+          <div class="grid grid-cols-1 gap-4">
+            <section class="card bg-base-200 shadow-sm" data-module="bible-favorites" aria-labelledby="bible-favorites-title">
+              <div class="card-body p-5 gap-2">
+                <h3 class="card-title" id="bible-favorites-title">Estudios favoritos</h3>
                 <div data-slot></div>
               </div>
             </section>

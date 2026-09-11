@@ -2,6 +2,27 @@
 
 All notable changes to Logos Workspace are documented in this file.
 
+## 2026-09-11 — Favorite Bíblia studies
+
+- Saved studies can now be **starred**, and a new **Favoritos** nav tab (Estudio
+  → Historia → Favoritos → Libros) lists only the starred ones. A favorite is a
+  flag on a specific saved study row, mirroring history: starring the same
+  passage in two languages gives two independent entries, each a real
+  reopenable report.
+- Schema **v6** adds `studies.is_favorite` (`DEFAULT 0`, so existing rows and
+  the existing INSERT are unaffected).
+- `GET /api/bible/studies?favorites_only=true` filters the list; new
+  `POST /api/bible/studies/{id}/favorite` `{"favorite": true|false}` sets or
+  clears the flag and returns the updated record (404 with the same
+  `"Estudio no encontrado"` detail the other study routes use).
+- The star toggle (★/☆) sits before *Abrir* in **both** list views, so a study
+  can be starred or unstarred from Historial or Favoritos and the other view
+  reflects it on its next load.
+- Historial and Favoritos now share one implementation
+  (`static/js/lib/bible_saved_list.js`) instead of two near-identical copies;
+  the two components are 13-line wrappers differing only in fetch path and
+  empty-state message.
+
 ## 2026-09-11 — Dynamic Bíblia example-passage chips
 
 - The Bíblia study input's example chips are now **LLM-generated on each load**

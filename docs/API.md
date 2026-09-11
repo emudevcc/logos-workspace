@@ -318,8 +318,13 @@ cached in SQLite (`bible_cache`) for `BIBLE_API_CACHE_TTL_SECONDS`.
       "passage_text":"     [31] ¿Pues qué diremos á esto? …","copyright":""}`
 - `POST /api/bible/study` `{"reference":"Rm 8:31-39","translation":""}` (LLM,
   rate-limited) → **201** `StudyRecord` (six-section report, saved automatically)
-- `GET /api/bible/studies` — history summaries
+- `GET /api/bible/studies[?favorites_only=true]` — history summaries; with
+  `favorites_only=true` only starred studies are returned, same order/shape
 - `GET /api/bible/studies/{id}` · `DELETE /api/bible/studies/{id}` (→ 204)
+- `POST /api/bible/studies/{id}/favorite` `{"favorite": true}` — set or clear
+  the favorite flag (one endpoint for both; the body is validated with
+  `extra="forbid"`, so send exactly that field). → 200 `StudyRecord` with
+  `is_favorite` updated; 404 `"Estudio no encontrado"` for an unknown id
 
 Errors: `503` without `BIBLE_API_KEY`; `502` upstream failure or translation
 unavailable; `422` unparsable reference.
