@@ -2,6 +2,28 @@
 
 All notable changes to Logos Workspace are documented in this file.
 
+## 2026-09-11 — Dynamic Bíblia example-passage chips
+
+- The Bíblia study input's example chips are now **LLM-generated on each load**
+  instead of a fixed list of six per language. New
+  `GET /api/bible/example-passages?language=es|en|pt` returns a fresh, varied
+  set (mixed OT/NT, no repeated book), and a per-language recent-window keeps
+  consecutive loads from serving the same references.
+- **Every suggestion is validated before it is shown.** Each candidate
+  round-trips through the real reference parser, and anything unparseable — a
+  hallucinated book, a malformed reference — is dropped rather than served,
+  so a bad suggestion can't 422 or feed a wrong passage into study generation.
+- **The chip row can never break.** The endpoint returns `200` with `[]` for
+  any LLM problem (not configured, budget exhausted, upstream error, malformed
+  JSON), and the frontend renders the curated examples immediately, replacing
+  them only if a non-empty list arrives — so no empty-chip flash and no visible
+  error, even with the backend unreachable.
+- The refresh is fire-and-forget and guarded against stale responses, so
+  switching language rapidly never leaves another language's chips on screen.
+- The endpoint is deliberately not rate-limited, matching
+  `/api/word-of-day/random`: a suggestion fetched per mount/language-switch
+  must not consume the shared 30/min budget a real study submission needs.
+
 ## 2026-09-11 — Bíblia LLM reliability hardening
 
 ### Fixed

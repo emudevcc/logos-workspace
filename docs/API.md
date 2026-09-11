@@ -306,6 +306,13 @@ cached in SQLite (`bible_cache`) for `BIBLE_API_CACHE_TTL_SECONDS`.
 - `GET /api/bible/books` — the 66-book registry:
   `{"code":"ROM","name_pt":"Romanos","testament":"NT","genre":"Epístola Paulina",
     "author":"Paulo","date":"≈ 57 d.C.","occasion":"…"}`
+- `GET /api/bible/example-passages?language=es|en|pt` — LLM-suggested example
+  passage chips for the study input, e.g. `["Romanos 8:31-39","Salmos 23"]`.
+  Every reference is validated against the book registry before it is returned,
+  so an unparseable suggestion is dropped rather than served. Not rate-limited
+  (matching `/api/word-of-day/random`) and never fails: any LLM problem — not
+  configured, budget exhausted, upstream error, malformed JSON — returns `200`
+  with `[]`, and the frontend falls back to its curated examples.
 - `GET /api/bible/passage?reference=Rm 8:31-39[&translation=RVR09]` (rate-limited)
   → `{"ref":{…,"display":"Romanos 8:31-39","translation":"RVR09"},
       "passage_text":"     [31] ¿Pues qué diremos á esto? …","copyright":""}`

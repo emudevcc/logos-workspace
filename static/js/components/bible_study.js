@@ -156,7 +156,25 @@ export function init(slot) {
     runBtn.textContent = strings.run;
     versionEl.textContent = `${strings.versionPrefix}: ${versionLabel()} · ${strings.versionSuffix}`;
     noteEl.textContent = strings.note;
+    // The curated examples render synchronously so the chip row is never
+    // empty while the refresh below is in flight.
     renderChips(strings.examples || []);
+    loadChips();
+  }
+
+  async function loadChips() {
+    // Fire-and-forget: the fallback chips above are already on screen, so a
+    // slow or failing request must never block or blank the row.
+    const requestedLang = language;
+    try {
+      const fresh = await apiGet(`/api/bible/example-passages?language=${requestedLang}`);
+      // Discard a stale response: on rapid language switches a slow es reply
+      // must not overwrite the en chips the user is now looking at.
+      if (requestedLang !== language) return;
+      if (Array.isArray(fresh) && fresh.length) renderChips(fresh);
+    } catch {
+      /* keep the curated fallback already rendered */
+    }
   }
 
   function renderChips(examples) {
