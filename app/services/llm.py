@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import random
 from datetime import UTC
 from typing import Any, Protocol
@@ -16,6 +17,8 @@ from typing import Any, Protocol
 import httpx
 
 from app.core.budget import SpendBudget
+
+logger = logging.getLogger(__name__)
 
 # Groq's structured error code for "the model did not emit usable JSON".
 # Callers must not substring-match this themselves — it lives here so the
@@ -140,16 +143,31 @@ class LLMClient:
             # A 429 whose Retry-After we already waited out must not also pay
             # the jittered backoff at the top of this iteration — that double
             # sleep was real latency, not a documentation gap.
+            sleep_path = "none"
             if attempt > 0 and not honored_retry_after:
                 backoff = min(4.0, 0.5 * (2 ** (attempt - 1)))
                 await asyncio.sleep(backoff * random.uniform(0.5, 1.0))
+                sleep_path = "backoff"
             honored_retry_after = False
+            if attempt > 0:
+                logger.warning(
+                    "llm retry attempt=%d/%d sleep=%s",
+                    attempt + 1,
+                    self._max_retries + 1,
+                    sleep_path,
+                )
             try:
                 response = await self._client.post(
                     url, json=payload, headers=headers, timeout=self._timeout
                 )
             except httpx.TransportError as exc:
                 last_error = exc
+                logger.warning(
+                    "llm transport error attempt=%d/%d error=%s",
+                    attempt + 1,
+                    self._max_retries + 1,
+                    type(exc).__name__,
+                )
                 continue
             if response.status_code == 429 or response.status_code >= 500:
                 last_error = LLMError(f"upstream {response.status_code}")
@@ -158,6 +176,14 @@ class LLMClient:
                     if retry_after is not None and retry_after <= 15:
                         await asyncio.sleep(retry_after)
                         honored_retry_after = True
+                        sleep_path = "retry-after"
+                logger.warning(
+                    "llm upstream error attempt=%d/%d status=%d sleep=%s",
+                    attempt + 1,
+                    self._max_retries + 1,
+                    response.status_code,
+                    sleep_path,
+                )
                 await response.aread()
                 continue
             if response.status_code != 200:
@@ -166,6 +192,11 @@ class LLMClient:
             if not isinstance(data, dict):
                 raise LLMError("LLM response is not a JSON object")
             return data
+        logger.error(
+            "llm retries exhausted attempts=%d last_error=%s",
+            self._max_retries + 1,
+            _truncate(str(last_error)),
+        )
         raise LLMError(f"LLM request failed after {self._max_retries + 1} attempts: {last_error}")
 
 
@@ -194,6 +225,11 @@ def _non_200_error(response: httpx.Response) -> LLMError:
                     f"LLM request failed (400, {LLM_JSON_FAILURE_MARKER}): {_truncate(text)}"
                 )
         if "Failed to generate JSON" in text:
+            logger.warning(
+                "llm json-failure fallback detection fired (no structured error.code); "
+                "body=%s",
+                _truncate(text),
+            )
             return LLMJsonValidationError(
                 f"LLM request failed (400, json-failure fallback detection): {_truncate(text)}"
             )

@@ -219,9 +219,33 @@ Caddy listens on `:8080` and proxies to `127.0.0.1:8000`.
 ## Operations
 
 - **Health**: `curl https://localhost:8090/healthz` (Logos LaunchAgent) or `:8000` (legacy English agent).
-- **Logs**: `journalctl -u english-cockpit -f` (the live-STT relay logs
-  `live STT started/stopped` and audio-chunk counts).
+- **Logs**: `journalctl -u english-cockpit -f` on the Pi/systemd target (the live-STT
+  relay logs `live STT started/stopped` and audio-chunk counts). On macOS the
+  LaunchAgent redirects stdout/stderr to `data/logos-agent.log` instead —
+  `tail -f data/logos-agent.log`. Neither target rotates that file.
 - **Database**: `data/cockpit.db` (WAL); it is excluded from deploys so SRS progress
   survives updates.
 - **Feed drift**: BBC/The Guardian/NPR feed URLs are the most likely thing to break over
   time — they're constants in the service modules (edit + redeploy).
+
+### Diagnosing a failed Bíblia study
+
+The app configures no logging handler of its own, so `app.services.*` log records
+propagate to the root logger and land in whichever stream the target already
+captures — `data/logos-agent.log` on the macOS LaunchAgent, or `journalctl -u
+english-cockpit -f` on the Pi/systemd path. The Bíblia study path emits:
+
+| Line | Level | Meaning |
+|---|---|---|
+| `bible study retry reason=... ref=...` | WARNING | The first attempt failed and a corrective retry is about to run. `reason` is `LLMJsonValidationError` (unusable JSON) or `LLMSchemaMismatchError` (valid JSON, wrong shape — the line also names the failing field paths). |
+| `bible study failed reason=... ref=...` | ERROR | Both attempts were exhausted; the route returns a 502 with a friendly Spanish detail. |
+| `llm retry attempt=N/M sleep=...` | WARNING | A network-level retry inside one `complete_json` call. `sleep` is `backoff`, `retry-after`, or `none` (the last only for an attempt that follows an honored `Retry-After`). |
+| `llm transport error attempt=N/M error=...` | WARNING | `httpx.TransportError` — connection/TLS/DNS rather than an HTTP status. |
+| `llm upstream error attempt=N/M status=...` | WARNING | 429 or 5xx from the provider. |
+| `llm json-failure fallback detection fired` | WARNING | The provider's 400 had no structured `error.code`, so the substring heuristic classified it as a JSON failure. If this fires, `LLM_BASE_URL` points somewhere whose error shape differs from Groq's. |
+| `llm retries exhausted attempts=N last_error=...` | ERROR | Every network attempt failed; a `LLMError` is about to be raised. |
+
+A transient failure that recovers logs one WARNING and no ERROR; a totally
+failed study logs the ERROR pair. Logged text is truncated via the shared
+`_truncate()` helper — no API key, `Authorization` header, full passage text,
+or full model response body ever reaches the log.

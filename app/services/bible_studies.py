@@ -282,7 +282,13 @@ class BibleStudyService:
             except LLMJsonValidationError as exc:
                 last_error = exc
                 if attempt == 0:
+                    logger.warning(
+                        "bible study retry reason=%s ref=%s", type(exc).__name__, ref.display
+                    )
                     continue
+                logger.error(
+                    "bible study failed reason=%s ref=%s", type(exc).__name__, ref.display
+                )
                 raise
             try:
                 report = BibleStudy.model_validate(raw)
@@ -296,7 +302,19 @@ class BibleStudyService:
                     exc.errors(),
                 )
                 if attempt == 0:
+                    logger.warning(
+                        "bible study retry reason=%s ref=%s fields=%s",
+                        type(last_error).__name__,
+                        ref.display,
+                        _format_errors(exc.errors()),
+                    )
                     continue
+                logger.error(
+                    "bible study failed reason=%s ref=%s fields=%s",
+                    type(last_error).__name__,
+                    ref.display,
+                    _format_errors(exc.errors()),
+                )
                 raise last_error from exc
         if report is None:  # pragma: no cover - defensive; loop breaks or raises
             raise last_error or LLMError("Estudio bíblico: falha sem erro registrado")
