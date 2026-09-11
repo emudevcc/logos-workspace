@@ -283,7 +283,9 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(LLMError)
     async def _llm_error(request: Request, exc: LLMError) -> JSONResponse:
-        return JSONResponse(status_code=502, content={"detail": str(exc)})
+        # Defense in depth: some LLMError messages are assembled outside
+        # llm.py (e.g. a Pydantic validation repr) and may embed model text.
+        return JSONResponse(status_code=502, content={"detail": str(exc)[:200]})
 
     @app.exception_handler(DeepgramNotConfiguredError)
     async def _deepgram_not_configured(

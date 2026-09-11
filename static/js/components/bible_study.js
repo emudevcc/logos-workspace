@@ -248,7 +248,7 @@ export function init(slot) {
         ? `${t().saved(record.id)} ${t().regenerated}`
         : t().saved(record.id);
     } catch (error) {
-      const limited = /\b429\b/.test(error.message);
+      const limited = error.status === 429;
       if (limited) lastFailAt = Date.now();
       statusEl.textContent = limited ? t().rateLimited : t().failed(error.message);
       if (!limited) retryBtn.hidden = true;

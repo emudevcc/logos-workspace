@@ -17,6 +17,11 @@ import httpx
 
 from app.core.budget import SpendBudget
 
+# Groq's structured error code for "the model did not emit usable JSON".
+# Callers must not substring-match this themselves — it lives here so the
+# classification stays in one place.
+LLM_JSON_FAILURE_MARKER = "json_validate_failed"
+
 
 class LLMError(RuntimeError):
     """Raised when the LLM request or its JSON response is unusable."""
@@ -28,6 +33,21 @@ class LLMNotConfiguredError(LLMError):
 
 class LLMBudgetExceeded(LLMError):
     """Raised when the daily LLM spend budget is exhausted."""
+
+
+class LLMJsonValidationError(LLMError):
+    """Raised when the model produced something that is not usable JSON.
+
+    Covers both the upstream structured failure (Groq's 400 with
+    ``error.code == "json_validate_failed"``) and this client's own
+    decode/shape checks, so callers classify by type instead of by
+    substring-matching a free-text message.
+    """
+
+
+def _truncate(text: str, limit: int = 200) -> str:
+    """Bound upstream/model text embedded in exception messages and logs."""
+    return text if len(text) <= limit else text[:limit]
 
 
 class LLMProvider(Protocol):
@@ -100,9 +120,14 @@ class LLMClient:
         try:
             parsed = json.loads(content)
         except json.JSONDecodeError as exc:
-            raise LLMError(f"LLM returned invalid JSON: {content[:200]!r}") from exc
+            raise LLMJsonValidationError(
+                f"LLM returned invalid JSON: {_truncate(content)!r}"
+            ) from exc
         if not isinstance(parsed, dict):
-            raise LLMError("LLM JSON response must be a top-level object")
+            raise LLMJsonValidationError(
+                f"LLM JSON response must be a top-level object, got "
+                f"{type(parsed).__name__}: {_truncate(content)!r}"
+            )
         return parsed
 
     async def _post_completions(
@@ -130,9 +155,7 @@ class LLMClient:
                 await response.aread()
                 continue
             if response.status_code != 200:
-                raise LLMError(
-                    f"LLM request failed ({response.status_code}): {response.text[:200]}"
-                )
+                raise _non_200_error(response)
             data = response.json()
             if not isinstance(data, dict):
                 raise LLMError("LLM response is not a JSON object")
@@ -140,14 +163,46 @@ class LLMClient:
         raise LLMError(f"LLM request failed after {self._max_retries + 1} attempts: {last_error}")
 
 
+def _non_200_error(response: httpx.Response) -> LLMError:
+    """Classify a non-200 response as a typed LLM error.
+
+    ``LLM_JSON_FAILURE_MARKER`` is checked structurally first: Groq reports a
+    model-generated-JSON failure as a 400 whose body carries
+    ``error.code == "json_validate_failed"``. ``LLM_BASE_URL`` is
+    configurable, so a provider that doesn't emit that shape falls back to
+    the historical substring heuristic — flagged in the message wording so the
+    fallback (which decides whether a failure is retried and billed again) is
+    never mistaken for the structural match.
+    """
+    text = response.text
+    if response.status_code == 400:
+        try:
+            data = response.json()
+        except (json.JSONDecodeError, ValueError):
+            data = None
+        if isinstance(data, dict):
+            error = data.get("error")
+            code = error.get("code") if isinstance(error, dict) else None
+            if code == "json_validate_failed":
+                return LLMJsonValidationError(
+                    f"LLM request failed (400, {LLM_JSON_FAILURE_MARKER}): {_truncate(text)}"
+                )
+        if "Failed to generate JSON" in text:
+            return LLMJsonValidationError(
+                f"LLM request failed (400, json-failure fallback detection): {_truncate(text)}"
+            )
+    return LLMError(f"LLM request failed ({response.status_code}): {_truncate(text)}")
+
+
 def _extract_content(data: dict[str, Any]) -> str:
     try:
         content = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise LLMError(f"Unexpected LLM response shape: {data!r}") from exc
+        raise LLMError(f"Unexpected LLM response shape: {_truncate(repr(data))}") from exc
     if not isinstance(content, str):
-        raise LLMError(f"LLM content is not a string: {content!r}")
+        raise LLMError(f"LLM content is not a string: {_truncate(repr(content))}")
     return content
+
 
 def _retry_after_seconds(response: Any) -> float | None:
     """Seconds suggested by a 429 'Retry-After' header (delta-seconds or date).

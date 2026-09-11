@@ -21,7 +21,7 @@ from app.schemas.bible import BibleStudy, StudyRecord, StudySummary
 from app.services.bible_books import BOOKS, Book
 from app.services.bible_parser import book_by_code, parse_reference
 from app.services.bible_provider import BibleTextProvider
-from app.services.llm import LLMError, LLMProvider
+from app.services.llm import LLMError, LLMJsonValidationError, LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -107,11 +107,6 @@ _JSON_RETRY_HINT = {
         "indicada; sem blocos de código nem texto extra."
     ),
 }
-
-
-def _is_json_failure(exc: LLMError) -> bool:
-    message = str(exc)
-    return "json_validate_failed" in message or "Failed to generate JSON" in message
 
 
 _USER_BY_LANG = {
@@ -234,7 +229,7 @@ class BibleStudyService:
                 break
             except LLMError as exc:
                 last_error = exc
-                if attempt == 0 and _is_json_failure(exc):
+                if attempt == 0 and isinstance(exc, LLMJsonValidationError):
                     continue
                 raise
         if raw is None:

@@ -18,7 +18,7 @@ from app.services.bible_provider import (
     passage_id_for,
 )
 from app.services.bible_studies import BibleStudyService
-from app.services.llm import LLMError
+from app.services.llm import LLMJsonValidationError
 from tests.backend.helpers import ClientFactory, FakeLLM, make_mock_http
 
 SAMPLE_REPORT = {
@@ -433,7 +433,7 @@ async def test_study_retries_once_on_json_validation_failure(database: Database)
         ):
             calls.append({"system": system, "temperature": temperature})
             if len(calls) == 1:
-                raise LLMError(
+                raise LLMJsonValidationError(
                     "LLM request failed (400): {\"error\": {\"code\": \"json_validate_failed\", "
                     "\"failed_generation\": \"{\\\"text_liter\\\"\"}}"
                 )
