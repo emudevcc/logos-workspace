@@ -39,10 +39,13 @@ All notable changes to Logos Workspace are documented in this file.
 
 ### Tests
 
-- 10 new backend tests (244 → 254): the corrected single-sleep 429 path plus its
-  backoff fallbacks, the typed exceptions for both 400 and 200 body shapes, the
-  schema-mismatch retry (asserting the hint's field-path content), the friendly
-  detail with no `input_value` leak, and `LLMBudgetExceeded` → 429 routing.
+- 16 new backend tests (244 → 260): the corrected single-sleep 429 path plus its
+  backoff fallbacks (no header, unparsable header, above the 15 s honor cap), a
+  direct `_retry_after_seconds` suite covering delta-seconds and HTTP-date forms
+  and the unusable-input paths, the typed exceptions for both 400 and 200 body
+  shapes, the schema-mismatch retry (asserting the hint's field-path content),
+  the friendly detail with no `input_value` leak, and `LLMBudgetExceeded` → 429
+  routing.
 
 ### Known gap (pre-existing, out of scope)
 

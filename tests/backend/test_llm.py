@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from email.utils import format_datetime
 
 import httpx
 import pytest
 
-from app.services.llm import LLMClient, LLMError, LLMJsonValidationError
+from app.services.llm import LLMClient, LLMError, LLMJsonValidationError, _retry_after_seconds
 from tests.backend.helpers import chat_error_response, chat_response
 
 Handler = Callable[[httpx.Request], httpx.Response]
@@ -218,6 +220,89 @@ async def test_transport_error_still_uses_backoff(
         calls += 1
         if calls == 1:
             return httpx.Response(500)
+        return httpx.Response(200, json=chat_response('{"ok": true}'))
+
+    sleeps = _capture_sleeps(monkeypatch)
+    async with _client(handler) as http:
+        llm = LLMClient(
+            http, base_url="https://api.example.com", api_key="k", model="m", max_retries=1
+        )
+        result = await llm.complete_json(system="s", user="u")
+    assert result == {"ok": True}
+    assert len(sleeps) == 1
+    assert sleeps[0] <= 4.0
+
+
+def _retry_after_response(value: str | None) -> httpx.Response:
+    headers = {"retry-after": value} if value is not None else {}
+    return httpx.Response(429, headers=headers)
+
+
+def test_retry_after_seconds_parses_delta_seconds() -> None:
+    assert _retry_after_seconds(_retry_after_response("3")) == 3.0
+    assert _retry_after_seconds(_retry_after_response("  7  ")) == 7.0
+    assert _retry_after_seconds(_retry_after_response("0")) == 0.0
+
+
+def test_retry_after_seconds_parses_http_date() -> None:
+    moment = datetime.now(UTC) + timedelta(seconds=30)
+    http_date = format_datetime(moment, usegmt=True)
+    value = _retry_after_seconds(_retry_after_response(http_date))
+    assert value is not None
+    # Parsed to a remaining-seconds delay, allowing for elapsed wall time.
+    assert 25.0 <= value <= 31.0
+
+
+def test_retry_after_seconds_clamps_past_http_date_to_zero() -> None:
+    past = format_datetime(datetime.now(UTC) - timedelta(seconds=60), usegmt=True)
+    assert _retry_after_seconds(_retry_after_response(past)) == 0.0
+
+
+def test_retry_after_seconds_returns_none_when_unusable() -> None:
+    assert _retry_after_seconds(_retry_after_response(None)) is None
+    assert _retry_after_seconds(_retry_after_response("")) is None
+    assert _retry_after_seconds(_retry_after_response("   ")) is None
+    # Unparsable / non-numeric non-date values fall back to the caller's backoff.
+    assert _retry_after_seconds(_retry_after_response("soon")) is None
+    assert _retry_after_seconds(_retry_after_response("-5")) is None
+    assert _retry_after_seconds(object()) is None  # no .headers attribute
+
+
+async def test_429_with_unparsable_retry_after_uses_backoff(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unusable Retry-After must fall back to one jittered backoff sleep."""
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return _retry_after_response("not-a-delay")
+        return httpx.Response(200, json=chat_response('{"ok": true}'))
+
+    sleeps = _capture_sleeps(monkeypatch)
+    async with _client(handler) as http:
+        llm = LLMClient(
+            http, base_url="https://api.example.com", api_key="k", model="m", max_retries=1
+        )
+        result = await llm.complete_json(system="s", user="u")
+    assert result == {"ok": True}
+    assert len(sleeps) == 1
+    assert sleeps[0] <= 4.0
+
+
+async def test_429_retry_after_above_cap_uses_backoff(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Retry-After longer than the 15s honor cap falls back to the backoff."""
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return _retry_after_response("99")
         return httpx.Response(200, json=chat_response('{"ok": true}'))
 
     sleeps = _capture_sleeps(monkeypatch)
