@@ -94,3 +94,12 @@ def make_mock_http(handler: Callable[[httpx.Request], httpx.Response]) -> httpx.
 def chat_response(content: str) -> dict[str, Any]:
     """Build an OpenAI-compatible chat completion payload whose content is ``content``."""
     return {"choices": [{"message": {"content": content}}]}
+
+
+def chat_error_response(status_code: int, code: str, message: str = "boom") -> httpx.Response:
+    """Build an OpenAI-compatible *error* response (``chat_response`` can't).
+
+    ``code`` is the upstream ``error.code`` a caller wants to exercise, e.g.
+    Groq's ``json_validate_failed`` or any other value.
+    """
+    return httpx.Response(status_code, json={"error": {"code": code, "message": message}})

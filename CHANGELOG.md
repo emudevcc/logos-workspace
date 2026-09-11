@@ -2,6 +2,54 @@
 
 All notable changes to Logos Workspace are documented in this file.
 
+## 2026-09-11 — Bíblia LLM reliability hardening
+
+### Fixed
+
+- **429 handling slept twice per retried attempt.** The `Retry-After` wait and
+  the jittered backoff both fired for the same retried network attempt. Only one
+  applies now: a 429 whose `Retry-After` was honored skips the backoff; 5xx and
+  header-less 429s still back off normally. `docs/DEPLOYMENT.md` documents the
+  corrected worst-case latency for a study (no new setting).
+- **`LLMBudgetExceeded` on `/api/bible/study` returned 502** instead of reaching
+  the app's own 429 handler, because the route intercepted the base `LLMError`.
+- **The global `LLMError` handler returned unbounded upstream/model text**; it is
+  now capped at 200 characters, and `_extract_content` no longer embeds the full
+  response dict.
+- **Rate-limit detection in the frontend matched `429` inside the error message
+  text** — any wording change could hide the retry affordance. It now uses
+  `error.status`.
+
+### Added
+
+- **Typed LLM error taxonomy.** `LLMJsonValidationError` replaces the
+  substring-matching of `json_validate_failed` / `"Failed to generate JSON"`
+  that was duplicated across `bible_studies.py`, `routes_bible.py`, and
+  `bible_study.js`. Detection is structural (Groq's `error.code`) with a
+  logged substring fallback for other providers.
+- **Schema-shape mismatch retry.** A response that is valid JSON but the wrong
+  shape previously got zero retries. It now retries once with a hint naming the
+  actual failing field paths (from Pydantic's `loc`/`msg` — never the model's
+  own input values), distinct from the JSON-syntax hint.
+- **Retry/exhaustion logging.** `app/services/llm.py` gained a module logger and
+  `bible_studies.py`'s previously-unused logger is now wired up, so every
+  retried attempt, fallback detection, and exhausted failure is visible in the
+  deployed log. `docs/DEPLOYMENT.md` documents both log locations (macOS
+  LaunchAgent vs. Pi/systemd) and every line the Bíblia path emits.
+
+### Tests
+
+- 10 new backend tests (244 → 254): the corrected single-sleep 429 path plus its
+  backoff fallbacks, the typed exceptions for both 400 and 200 body shapes, the
+  schema-mismatch retry (asserting the hint's field-path content), the friendly
+  detail with no `input_value` leak, and `LLMBudgetExceeded` → 429 routing.
+
+### Known gap (pre-existing, out of scope)
+
+- `data/logos-agent.log` on the macOS LaunchAgent is not rotated and shares a
+  volume with `data/cockpit.db`. This predates this release and affects every
+  cockpit, not just Bíblia — worth a separate follow-up.
+
 ## 2026-09-08 — Bíblia em três idiomas (ES · EN · PT)
 
 - Bíblia cockpit passage text is now selectable between **Español / English /

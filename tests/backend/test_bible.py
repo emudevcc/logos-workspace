@@ -17,8 +17,8 @@ from app.services.bible_provider import (
     BibleTranslationUnavailableError,
     passage_id_for,
 )
-from app.services.bible_studies import BibleStudyService
-from app.services.llm import LLMJsonValidationError
+from app.services.bible_studies import BibleStudyService, LLMSchemaMismatchError
+from app.services.llm import LLMBudgetExceeded, LLMJsonValidationError
 from tests.backend.helpers import ClientFactory, FakeLLM, make_mock_http
 
 SAMPLE_REPORT = {
@@ -451,3 +451,146 @@ async def test_study_retries_once_on_json_validation_failure(database: Database)
     assert len(calls) == 2
     assert "Return ONLY" in calls[1]["system"]
     assert calls[1]["temperature"] == 0.1
+
+
+def _invalid_shape_report() -> dict:
+    """A schema-valid JSON payload that fails BibleStudy validation."""
+    bad = dict(SAMPLE_REPORT)
+    bad["lexical_exegesis"] = SAMPLE_REPORT["lexical_exegesis"] * 4  # max_length=3
+    return bad
+
+
+async def test_study_retries_schema_mismatch_with_field_path_hint(
+    database: Database,
+) -> None:
+    """A wrong-shape response retries once with a hint naming the failed field."""
+    calls: list[dict] = []
+
+    class ShapeFlakyLLM:
+        enabled = True
+
+        async def complete_json(
+            self, *, system: str, user: str, max_tokens: int, temperature: float
+        ):
+            calls.append({"system": system, "temperature": temperature})
+            if len(calls) == 1:
+                return _invalid_shape_report()
+            return SAMPLE_REPORT
+
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler("english text")),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    service = BibleStudyService(database, ShapeFlakyLLM(), provider)  # type: ignore[arg-type]
+    record = await service.create_study("João 3:16", translation="NIV", language="en")
+
+    assert record.report.reference == "João 3:16"
+    assert len(calls) == 2
+    # The hint must carry the *actual* failing field path, not just fire a retry.
+    assert "lexical_exegesis" in calls[1]["system"]
+    # ...and be the schema hint, not the JSON-syntax one.
+    assert "MANDATORY CORRECTION" in calls[1]["system"]
+    assert "Return ONLY" not in calls[1]["system"]
+    # The first attempt still got the plain system prompt.
+    assert "MANDATORY CORRECTION" not in calls[0]["system"]
+    assert calls[1]["temperature"] == 0.1
+
+
+async def test_study_exhausted_schema_mismatch_raises_typed_error(
+    database: Database,
+) -> None:
+    """Both attempts wrong-shape -> LLMSchemaMismatchError naming the field."""
+    calls: list[dict] = []
+
+    class AlwaysWrongShapeLLM:
+        enabled = True
+
+        async def complete_json(
+            self, *, system: str, user: str, max_tokens: int, temperature: float
+        ):
+            calls.append({"system": system})
+            return _invalid_shape_report()
+
+    provider = BibleTextProvider(
+        make_mock_http(make_bible_handler("english text")),
+        base_url="https://example.test/v1",
+        api_key="k",
+        default_translation="NTV",
+    )
+    service = BibleStudyService(
+        database,
+        AlwaysWrongShapeLLM(),  # type: ignore[arg-type]
+        provider,
+    )
+    with pytest.raises(LLMSchemaMismatchError) as excinfo:
+        await service.create_study("João 3:16", translation="NIV", language="en")
+
+    assert len(calls) == 2
+    message = str(excinfo.value)
+    assert "lexical_exegesis" in message
+    # The model's own field values must never be echoed into the error.
+    assert "input_value" not in message
+    assert "panta" not in message
+
+
+def test_study_route_maps_schema_mismatch_to_friendly_detail(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An exhausted schema mismatch surfaces a friendly detail, not a raw repr."""
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    class AlwaysWrongShapeLLM:
+        enabled = True
+
+        async def complete_json(
+            self, *, system: str, user: str, max_tokens: int = 1024, temperature: float = 0.2
+        ):
+            return _invalid_shape_report()
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(
+            handler=make_bible_handler("texto do capítulo"),
+            llm=AlwaysWrongShapeLLM(),  # type: ignore[arg-type]
+        ) as client:
+            response = client.post("/api/bible/study", json={"reference": "Rm 8:31-39"})
+            assert response.status_code == 502
+            body = response.text
+            assert "vuelve a intentarlo" in body
+            assert "input_value" not in body
+            assert "ValidationError" not in body
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)
+
+
+def test_study_route_maps_budget_exceeded_to_429(
+    client_factory: ClientFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """LLMBudgetExceeded must reach the app's 429 handler, not become a 502."""
+    monkeypatch.setenv("BIBLE_API_KEY", "test-key")
+    from app.core.config import get_settings
+
+    class BudgetLLM:
+        enabled = True
+
+        async def complete_json(
+            self, *, system: str, user: str, max_tokens: int = 1024, temperature: float = 0.2
+        ):
+            raise LLMBudgetExceeded("LLM daily limit reached")
+
+    get_settings.cache_clear()
+    try:
+        with client_factory(
+            handler=make_bible_handler("texto do capítulo"),
+            llm=BudgetLLM(),  # type: ignore[arg-type]
+        ) as client:
+            response = client.post("/api/bible/study", json={"reference": "Rm 8:31-39"})
+            assert response.status_code == 429
+            assert response.json()["detail"] == "LLM daily limit reached"
+    finally:
+        get_settings.cache_clear()
+        os.environ.pop("BIBLE_API_KEY", None)
