@@ -135,10 +135,15 @@ class LLMClient:
     ) -> dict[str, Any]:
         url = f"{self._base_url}/chat/completions"
         last_error: Exception | None = None
+        honored_retry_after = False
         for attempt in range(self._max_retries + 1):
-            if attempt > 0:
+            # A 429 whose Retry-After we already waited out must not also pay
+            # the jittered backoff at the top of this iteration — that double
+            # sleep was real latency, not a documentation gap.
+            if attempt > 0 and not honored_retry_after:
                 backoff = min(4.0, 0.5 * (2 ** (attempt - 1)))
                 await asyncio.sleep(backoff * random.uniform(0.5, 1.0))
+            honored_retry_after = False
             try:
                 response = await self._client.post(
                     url, json=payload, headers=headers, timeout=self._timeout
@@ -152,6 +157,7 @@ class LLMClient:
                     retry_after = _retry_after_seconds(response)
                     if retry_after is not None and retry_after <= 15:
                         await asyncio.sleep(retry_after)
+                        honored_retry_after = True
                 await response.aread()
                 continue
             if response.status_code != 200:

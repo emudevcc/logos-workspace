@@ -59,6 +59,26 @@ at startup. Copy `deploy/env.example` and fill in the keys.
 Feed URLs (news/podcast/radio stations) are code constants in
 `app/services/{news,podcast,radio}.py`.
 
+### Worst-case latency of a Bíblia study
+
+`POST /api/bible/study` combines two retry layers, so its worst case is
+derived from the defaults above rather than enforced by a timeout of its own:
+
+- up to **2 business attempts** (the service retries once when the model
+  returns unusable or schema-invalid JSON), each of which is
+- up to **`LLM_MAX_RETRIES + 1` = 4 network attempts**, each able to consume
+- up to **`LLM_TIMEOUT_SECONDS` = 60 s**, plus
+- up to one **15 s `Retry-After` wait** per network attempt that returns 429.
+
+A `Retry-After` wait is *not* compounded with the jittered backoff for the
+same retried attempt, so the backoff ceiling (≤ 4 s) is skipped on those
+transitions. The theoretical ceiling is therefore
+`2 × (4 × 60 s + 4 × 15 s)` ≈ 10 minutes, reached only when every attempt
+times out or is rate-limited; a normal transient failure recovers well inside
+the first timed-out call's budget. There is deliberately no enforced
+wall-clock deadline on this path — see `plans/` notes on why cancelling an
+in-flight request on the process-wide shared `httpx.AsyncClient` was rejected.
+
 ## Local Whisper (STT)
 
 Run speech-to-text offline with a local whisper.cpp server (free, no Deepgram key):

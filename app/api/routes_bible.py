@@ -24,7 +24,7 @@ from app.services.bible_provider import (
     BibleTranslationUnavailableError,
     BibleUpstreamError,
 )
-from app.services.bible_studies import BibleStudyService
+from app.services.bible_studies import BibleStudyService, LLMSchemaMismatchError
 from app.services.llm import (
     LLMBudgetExceeded,
     LLMError,
@@ -93,7 +93,7 @@ async def create_study(payload: StudyRequest, request: Request) -> StudyRecord:
         # codes, so FastAPI's registered handlers run instead of the 502 below.
         if isinstance(exc, (LLMBudgetExceeded, LLMNotConfiguredError)):
             raise
-        if isinstance(exc, LLMJsonValidationError):
+        if isinstance(exc, (LLMJsonValidationError, LLMSchemaMismatchError)):
             raise HTTPException(
                 status_code=502,
                 detail="El modelo no devolvió un JSON válido; vuelve a intentarlo.",

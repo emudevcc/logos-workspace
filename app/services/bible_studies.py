@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from pydantic import ValidationError
+from pydantic_core import ErrorDetails
 
 from app.core.db import Database
 from app.core.timeutil import iso_utc, utc_now
@@ -107,6 +108,57 @@ _JSON_RETRY_HINT = {
         "indicada; sem blocos de código nem texto extra."
     ),
 }
+
+# A schema mismatch is a different failure from malformed JSON: the JSON parsed
+# fine but its fields don't match the required shape, so a "return valid JSON"
+# reminder cannot fix it. These hints name the offending field paths instead.
+_SCHEMA_RETRY_HINT = {
+    "es": (
+        "\n\nCORRECCIÓN OBLIGATORIA: tu respuesta anterior tenía JSON válido pero no "
+        "respetaba el esquema indicado. Errores de validación: {fields}. Devuelve de "
+        "nuevo el objeto completo corrigiendo exactamente esos campos (respeta la "
+        "forma y los límites indicados, p. ej. 2-3 elementos en 'lexical_exegesis')."
+    ),
+    "en": (
+        "\n\nMANDATORY CORRECTION: your previous response was valid JSON but did not "
+        "match the required schema. Validation errors: {fields}. Return the full "
+        "object again, fixing exactly those fields (respect the documented shape and "
+        "limits, e.g. 2-3 items in 'lexical_exegesis')."
+    ),
+    "pt": (
+        "\n\nCORREÇÃO OBRIGATÓRIA: a tua resposta anterior tinha JSON válido mas não "
+        "respeitava o esquema indicado. Erros de validação: {fields}. Devolve de novo "
+        "o objeto completo corrigindo exatamente esses campos (respeita a forma e os "
+        "limites indicados, p. ex. 2-3 elementos em 'lexical_exegesis')."
+    ),
+}
+
+
+class LLMSchemaMismatchError(LLMError):
+    """Raised when a parsed LLM response fails ``BibleStudy`` validation.
+
+    Holds Pydantic's ``(loc, msg)`` pairs so the retry hint can name the failing
+    field paths. Never carries ``input`` — the model's own output values stay
+    out of prompts, logs, and client-facing messages.
+    """
+
+    def __init__(self, message: str, errors: list[ErrorDetails]) -> None:
+        super().__init__(message)
+        self.errors = errors
+
+
+def _format_errors(errors: list[ErrorDetails]) -> str:
+    """Render Pydantic errors as ``"."-joined field path: message`` pairs."""
+    rendered: list[str] = []
+    for error in errors:
+        loc = ".".join(str(part) for part in error.get("loc", ())) or "(root)"
+        rendered.append(f"{loc}: {error.get('msg', 'invalid')}")
+    return "; ".join(rendered) or "unknown"
+
+
+def _schema_retry_hint(errors: list[ErrorDetails], language: str) -> str:
+    """Localized corrective hint naming the fields that failed validation."""
+    return _SCHEMA_RETRY_HINT[language].format(fields=_format_errors(errors))
 
 
 _USER_BY_LANG = {
@@ -216,30 +268,38 @@ class BibleStudyService:
             passage_text=passage_text,
         )
         raw: dict[str, Any] | None = None
+        report: BibleStudy | None = None
         last_error: LLMError | None = None
         for attempt in range(2):
-            system_for_call = system if attempt == 0 else system + _JSON_RETRY_HINT[language]
+            hint = "" if last_error is None else _hint_for(last_error, language)
             try:
                 raw = await self._llm.complete_json(
-                    system=system_for_call,
+                    system=system + hint,
                     user=user,
                     max_tokens=self._max_report_tokens,
                     temperature=0.2 if attempt == 0 else 0.1,
                 )
-                break
-            except LLMError as exc:
+            except LLMJsonValidationError as exc:
                 last_error = exc
-                if attempt == 0 and isinstance(exc, LLMJsonValidationError):
+                if attempt == 0:
                     continue
                 raise
-        if raw is None:
-            if last_error is None:  # pragma: no cover - defensive
-                raise LLMError("Estudo bíblico: falha sem erro registrado")
-            raise last_error
-        try:
-            report = BibleStudy.model_validate(raw)
-        except ValidationError as exc:
-            raise LLMError(f"Estudo bíblico: resposta fora do esquema: {exc}") from exc
+            try:
+                report = BibleStudy.model_validate(raw)
+                break
+            except ValidationError as exc:
+                # Only loc/msg — never `include_input=True`, which would echo
+                # the model's own field values back into the next prompt.
+                last_error = LLMSchemaMismatchError(
+                    "Estudio bíblico: respuesta fuera del esquema "
+                    f"({_format_errors(exc.errors())})",
+                    exc.errors(),
+                )
+                if attempt == 0:
+                    continue
+                raise last_error from exc
+        if report is None:  # pragma: no cover - defensive; loop breaks or raises
+            raise last_error or LLMError("Estudio bíblico: falha sem erro registrado")
         # Echo the authoritative reference and text — never the model's version.
         return report.model_copy(
             update={
@@ -288,6 +348,19 @@ class BibleStudyService:
         async with self._db.transaction() as conn:
             cursor = await conn.execute("DELETE FROM studies WHERE id = ?", (study_id,))
             return cursor.rowcount > 0
+
+
+def _hint_for(last_error: LLMError, language: str) -> str:
+    """Corrective hint appended to the system prompt on the retry attempt.
+
+    Returns an empty string for any other ``LLMError`` subtype — those never
+    reach a retry, and a wrong-type guess must not raise deep in the loop.
+    """
+    if isinstance(last_error, LLMJsonValidationError):
+        return _JSON_RETRY_HINT[language]
+    if isinstance(last_error, LLMSchemaMismatchError):
+        return _schema_retry_hint(last_error.errors, language)
+    return ""
 
 
 def _profile_for_prompt(book: Book) -> str:
