@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -17,6 +18,7 @@ from app.schemas.bible import (
     TranslationInfo,
 )
 from app.services.bible_books import all_profiles
+from app.services.bible_examples import BiblePassageSuggester
 from app.services.bible_parser import BibleReferenceError, parse_reference
 from app.services.bible_provider import (
     BibleNotConfiguredError,
@@ -34,10 +36,43 @@ from app.services.llm import (
 
 router = APIRouter(prefix="/api/bible", tags=["bible"])
 
+logger = logging.getLogger(__name__)
+
 
 @router.get("/books", response_model=list[BookProfile])
 async def books() -> list[BookProfile]:
     return all_profiles()
+
+
+@router.get("/example-passages", response_model=list[str])
+async def example_passages(
+    request: Request,
+    language: str = Query(default="es"),
+) -> list[str]:
+    """Fresh example-passage chips for the study input.
+
+    Never fails from the client's point of view: any LLM problem (not
+    configured, budget exhausted, upstream error, malformed JSON) degrades to
+    an empty list, and the frontend falls back to its curated examples.
+
+    Deliberately NOT behind ``Depends(rate_limited)`` — same precedent as
+    ``word_of_day_random`` in ``routes_content.py``. This is a cheap
+    suggestion fetched on mount and on each language switch; putting it in the
+    shared 30/min bucket would let a few language switches eat into the budget
+    a real study submission needs.
+    """
+    lang = language if language in {"es", "en", "pt"} else "es"
+    suggester: BiblePassageSuggester | None = getattr(
+        request.app.state, "bible_examples", None
+    )
+    if suggester is None:  # pragma: no cover - defensive; wired in create_app
+        return []
+    try:
+        return await suggester.suggest(lang)
+    except LLMError as exc:
+        # Inlined truncation: llm.py's _truncate is module-private.
+        logger.warning("Bible example-passage suggestion failed: %s", str(exc)[:200])
+        return []
 
 
 @router.get(

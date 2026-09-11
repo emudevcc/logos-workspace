@@ -33,6 +33,7 @@ from app.core.config import get_settings
 from app.core.db import Database
 from app.core.ratelimit import RateLimiter
 from app.core.ws_manager import ConnectionManager
+from app.services.bible_examples import BiblePassageSuggester
 from app.services.bible_provider import BibleDbCache, BibleTextProvider
 from app.services.bible_studies import BibleStudyService
 from app.services.declutter import DeclutterService
@@ -178,6 +179,7 @@ def create_app(
     app.state.shadowing = ShadowingService(llm)
     app.state.grammar_drill = GrammarDrillService(llm)
     app.state.word_of_day = WordOfDayGenerator(llm)
+    app.state.bible_examples = BiblePassageSuggester(llm)
     app.state.writing = WritingCoachService(llm)
     app.state.monologue = MonologueService(llm)
     app.state.plan = WeeklyPlanService(llm)
