@@ -6,6 +6,15 @@ All notable changes to Logos Workspace are documented in this file.
 
 ### Fixed
 
+- **Unbounded log growth on the macOS LaunchAgent.** `data/logos-agent.log` was
+  never rotated and shares a volume with `data/cockpit.db`. The app now
+  attaches a size-capped `RotatingFileHandler` to its own `data/logos.log`
+  (`LOG_MAX_BYTES`, default 5 MB; `LOG_BACKUP_COUNT`, default 3), installed by
+  the `python -m app` entrypoint so it covers both deployment targets with no
+  root. Rotation targets a separate file from the LaunchAgent redirect on
+  purpose: the running process holds that file open, so renaming its inode
+  would leave the renamed archive still growing while the new file stayed
+  empty. `LOG_MAX_BYTES=0` restores the old stream-only behaviour.
 - **429 handling slept twice per retried attempt.** The `Retry-After` wait and
   the jittered backoff both fired for the same retried network attempt. Only one
   applies now: a 429 whose `Retry-After` was honored skips the backoff; 5xx and
@@ -47,11 +56,14 @@ All notable changes to Logos Workspace are documented in this file.
   the friendly detail with no `input_value` leak, and `LLMBudgetExceeded` → 429
   routing.
 
-### Known gap (pre-existing, out of scope)
+### Known gap
 
-- `data/logos-agent.log` on the macOS LaunchAgent is not rotated and shares a
-  volume with `data/cockpit.db`. This predates this release and affects every
-  cockpit, not just Bíblia — worth a separate follow-up.
+- `data/logos-agent.log` itself (the LaunchAgent's stdout/stderr redirect) still
+  is not rotated — macOS `newsyslog` needs root and cannot copy-truncate, so it
+  would rename the inode out from under the running process. The app's own
+  records now go to the rotating `data/logos.log` instead, so the unrotated file
+  only grows with uvicorn's startup lines and any third-party output; truncate
+  it in place (`: > data/logos-agent.log`) if it ever matters.
 
 ## 2026-09-08 — Bíblia em três idiomas (ES · EN · PT)
 

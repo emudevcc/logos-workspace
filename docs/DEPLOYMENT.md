@@ -25,6 +25,10 @@ at startup. Copy `deploy/env.example` and fill in the keys.
 | Env var | Default | Purpose |
 |---|---|---|
 | `COCKPIT_DB` | `data/cockpit.db` | SQLite location |
+| `LOG_PATH` | `data/logos.log` | rotating app log file (see below) |
+| `LOG_MAX_BYTES` | `5242880` | rotate past this size; `0` disables file logging |
+| `LOG_BACKUP_COUNT` | `3` | rotated files to retain |
+| `LOG_LEVEL` | `INFO` | root log level (unknown values fall back to `INFO`) |
 | `LLM_API_KEY` | *(empty)* | Groq key; enables LLM features |
 | `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | OpenAI-compatible endpoint |
 | `LLM_MODEL` | `qwen/qwen3.8-27b` | model on your Groq account |
@@ -219,10 +223,28 @@ Caddy listens on `:8080` and proxies to `127.0.0.1:8000`.
 ## Operations
 
 - **Health**: `curl https://localhost:8090/healthz` (Logos LaunchAgent) or `:8000` (legacy English agent).
-- **Logs**: `journalctl -u english-cockpit -f` on the Pi/systemd target (the live-STT
-  relay logs `live STT started/stopped` and audio-chunk counts). On macOS the
-  LaunchAgent redirects stdout/stderr to `data/logos-agent.log` instead —
-  `tail -f data/logos-agent.log`. Neither target rotates that file.
+- **Logs**: two destinations on both targets, by design:
+  - `data/logos.log` — the app's own rotating log (see below). This is where
+    `app.*` records go, and it is size-capped.
+  - The process stream: `tail -f data/logos-agent.log` on the macOS LaunchAgent
+    (its `StandardOutPath`/`StandardErrorPath` redirect), or
+    `journalctl -u english-cockpit -f` on the Pi/systemd target (journald does
+    its own retention). Uvicorn's startup lines land here.
+- **Log rotation**: `app/core/logging_setup.py` attaches a
+  `RotatingFileHandler` to `LOG_PATH` (default `data/logos.log`), rotating at
+  `LOG_MAX_BYTES` and keeping `LOG_BACKUP_COUNT` archives. It is installed by
+  the `python -m app` entrypoint, so it applies to both deployment targets and
+  needs no root.
+  - Rotation deliberately targets a **separate** file from the LaunchAgent's
+    `data/logos-agent.log`. The running process holds that file open for
+    append, and renaming its inode would not make the process follow it — the
+    renamed archive would keep growing while the fresh file stayed empty. A
+    handler that owns its own file rotates correctly with no restart.
+  - Set `LOG_MAX_BYTES=0` to disable file logging entirely and rely on the
+    process stream as before.
+  - Already deployed and just want the old, oversized file gone? Truncating
+    `data/logos-agent.log` while the agent runs is safe (`: > data/logos-agent.log`)
+    — the open descriptor keeps appending from offset 0.
 - **Database**: `data/cockpit.db` (WAL); it is excluded from deploys so SRS progress
   survives updates.
 - **Feed drift**: BBC/The Guardian/NPR feed URLs are the most likely thing to break over
@@ -230,9 +252,9 @@ Caddy listens on `:8080` and proxies to `127.0.0.1:8000`.
 
 ### Diagnosing a failed Bíblia study
 
-The app configures no logging handler of its own, so `app.services.*` log records
-propagate to the root logger and land in whichever stream the target already
-captures — `data/logos-agent.log` on the macOS LaunchAgent, or `journalctl -u
+The app attaches a size-capped `RotatingFileHandler` to `data/logos.log` (see
+Operations above), and `app.*` records also propagate to the process stream —
+`data/logos-agent.log` on the macOS LaunchAgent, or `journalctl -u
 english-cockpit -f` on the Pi/systemd path. The Bíblia study path emits:
 
 | Line | Level | Meaning |

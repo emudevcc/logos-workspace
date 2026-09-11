@@ -40,6 +40,28 @@ class Settings(BaseSettings):
         validation_alias="COCKPIT_DB",
         description="Filesystem location of the SQLite database.",
     )
+    log_path: Path = Field(
+        default=Path("data/logos.log"),
+        validation_alias="LOG_PATH",
+        description=(
+            "Rotating log file for the app's own records. Kept separate from the "
+            "LaunchAgent's data/logos-agent.log (which captures stdout/stderr) so "
+            "rotation does not fight the process's inherited file descriptor."
+        ),
+    )
+    log_max_bytes: int = Field(
+        default=5 * 1024 * 1024,
+        ge=0,
+        validation_alias="LOG_MAX_BYTES",
+        description="Rotate the log file once it exceeds this size; 0 disables file logging.",
+    )
+    log_backup_count: int = Field(
+        default=3,
+        ge=0,
+        validation_alias="LOG_BACKUP_COUNT",
+        description="Number of rotated log files to retain.",
+    )
+    log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
     static_dir: Path = Field(default=Path("static"))
     templates_dir: Path = Field(default=Path("templates"))
 

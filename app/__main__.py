@@ -10,10 +10,12 @@ from __future__ import annotations
 import uvicorn
 
 from app.core.config import get_settings
+from app.core.logging_setup import configure_logging
 
 
 def main() -> None:
     settings = get_settings()
+    configure_logging(settings)
     ssl_keyfile = settings.tls_keyfile or None
     ssl_certfile = settings.tls_certfile or None
     uvicorn.run(
