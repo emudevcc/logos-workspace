@@ -184,3 +184,24 @@ def test_parse_reference_rejects_what_the_route_drops() -> None:
     """Guard the contract from the other side."""
     with pytest.raises(BibleReferenceError):
         parse_reference("NoExisteLibro 3:1")
+
+
+async def test_out_of_range_chapters_still_pass_the_parser() -> None:
+    """Documents a known pre-existing parser gap this feature inherits.
+
+    ``parse_reference`` enforces only lower bounds (chapter >= 1, verse >= 1),
+    with no per-book chapter/verse ceiling, so ``Juan 99:1`` parses and is
+    therefore served as a suggestion. This is pre-existing behaviour that
+    affects manually typed references identically, and it is deliberately not
+    fixed here — doing so needs a 66-book chapter-count table, which the plan
+    scoped out. Pinned by this test so the behavior is visible and a future
+    fix has an obvious place to update.
+    """
+    reference = parse_reference("Juan 99:1")
+    assert reference.book_code == "JHN"
+    assert reference.chapter == 99
+
+    llm = FakeLLM(result={"passages": ["Juan 99:1", "Romanos 8:31-39"]})
+    suggested = await BiblePassageSuggester(llm).suggest("es")
+    # The out-of-range one survives; the endpoint would 200 with it included.
+    assert suggested == ["Juan 99:1", "Romanos 8:31-39"]

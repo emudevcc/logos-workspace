@@ -80,6 +80,15 @@ All notable changes to Logos Workspace are documented in this file.
 
 ### Known gap
 
+- Suggestion validation uses `parse_reference`, which enforces only *lower*
+  bounds — there is no per-book chapter/verse ceiling, so a suggestion like
+  `Juan 99:1` parses and is served even though the chapter doesn't exist.
+  This is pre-existing parser behaviour that affects manually typed references
+  identically; fixing it needs a 66-book chapter-count table, which this
+  change deliberately doesn't add. It's pinned by a test
+  (`test_out_of_range_chapters_still_pass_the_parser`) so the behaviour is
+  visible rather than surprising. Clicking such a chip surfaces the normal
+  upstream error, not a crash.
 - `data/logos-agent.log` itself (the LaunchAgent's stdout/stderr redirect) still
   is not rotated — macOS `newsyslog` needs root and cannot copy-truncate, so it
   would rename the inode out from under the running process. The app's own
