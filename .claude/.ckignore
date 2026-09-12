@@ -1,0 +1,5 @@
+# Project-local override of the shipped scout-block baseline.
+# Logos Workspace's Vite build output lives at static/dist/ and is a
+# legitimate, frequently-inspected build artifact for this project (not a
+# vendored dependency dump like node_modules) — allow reading/searching it.
+!dist
